@@ -1,0 +1,20 @@
+import GraphPlugin from '../index.js';
+import 'leaflet/dist/leaflet.css';
+import './style.css';
+
+import '@zazuko/yasgui/build/yasgui.min.css';
+import Yasgui from '@zazuko/yasgui';
+
+//Register the plugin to Yasr
+Yasgui.Yasr.registerPlugin('graph', GraphPlugin);
+
+const yasgui = new Yasgui(document.getElementById('yasgui'), {
+  // Set the SPARQL endpoint
+  requestConfig: {
+    endpoint: 'https://dbpedia.org/sparql',
+  },
+  yasr: {
+    pluginOrder: ['table', 'response', 'graph'], // Enable graph plugin alongside default table
+    defaultPlugin: 'graph',
+  },
+});
