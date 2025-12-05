@@ -5,6 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "Visualize SPARQL CONSTRUCT query results as interactive graphs with nodes (subjects/objects) and edges (predicates), supporting zoom, drag, tooltips, color coding, and image export"
 
+## Clarifications
+
+### Session 2025-12-06
+
+- Q: When a user exports the graph visualization as an image, what should be the exact scope of the export? → A: Export only the visible viewport content at current zoom/pan level (what user currently sees)
+- Q: What visual styling should be used for graph nodes to distinguish between different node types and content lengths? → A: All nodes use uniform shape (circle/ellipse) with fixed size, regardless of label length or type
+- Q: How should tooltips be triggered and displayed to balance information access with usability? → A: Hover only with 300ms delay before showing, auto-hide on mouse leave
+- Q: How should the plugin handle blank nodes (anonymous RDF nodes with no URI) that appear in CONSTRUCT results? → A: Display with generated label but use unique color (e.g., yellow) to distinguish from literals
+- Q: When the same subject and object are connected by multiple different predicates, how should these be displayed? → A: Draw separate parallel edges for each predicate (may overlap/curve to show multiple)
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - View Basic Graph Structure (Priority: P1)
@@ -84,8 +94,8 @@ After exploring and potentially adjusting the graph, the user wants to save the 
 
 **Acceptance Scenarios**:
 
-1. **Given** a rendered graph at any zoom/pan level, **When** the user clicks "save as image" control, **Then** the browser downloads a PNG/SVG file showing the current viewport content
-2. **Given** a graph with manually repositioned nodes, **When** the user exports the image, **Then** the exported image reflects the current node positions and zoom level
+1. **Given** a rendered graph at any zoom/pan level, **When** the user clicks "save as image" control, **Then** the browser downloads a PNG/SVG file showing only the visible viewport content at current zoom/pan (not the entire graph)
+2. **Given** a graph with manually repositioned nodes, **When** the user exports the image, **Then** the exported image reflects the current node positions and zoom level exactly as displayed in viewport
 3. **Given** a graph is exported, **When** the user opens the image file, **Then** the image has sufficient resolution for readable labels and maintains aspect ratio of the viewport
 
 ---
@@ -97,7 +107,9 @@ After exploring and potentially adjusting the graph, the user wants to save the 
 - **Isolated nodes**: What happens when triples contain subjects/objects with no connections? → Display as separate components with automatic spacing
 - **Very long URIs**: How are extremely long URIs handled in labels? → Truncate with ellipsis (e.g., `very-long-na...#term`), full URI in tooltip
 - **Very long literals**: How are literals with thousands of characters displayed? → Truncate label to ~50 characters, full value in tooltip
-- **Duplicate triples**: What happens when identical triples appear multiple times? → Display as single edge (no duplicate edges between same nodes)
+- **Duplicate triples**: What happens when identical triples appear multiple times? → Display as single edge (no duplicate edges between same nodes with same predicate)
+- **Multiple predicates between same nodes**: What happens when `<A> <p1> <B>` and `<A> <p2> <B>` exist? → Draw separate parallel edges for each predicate (edges may curve/offset to avoid complete overlap)
+- **Blank nodes**: How are anonymous RDF nodes (e.g., `_:b1`) displayed? → Show with generated label ("_:b1") in unique yellow color to distinguish from literals and URIs
 - **Self-referencing triples**: What happens when subject equals object (e.g., `<A> <related> <A>`)? → Display as loop edge from node to itself
 - **No prefixes defined**: What happens when SPARQL results don't include prefix definitions? → Only show the part of the URI after last `/` or `#` as label
 - **Large graphs (1000+ triples)**: How does the plugin handle performance with many nodes? → Initial layout completes within 2 seconds; warn user if exceeds rendering capacity
@@ -121,50 +133,56 @@ After exploring and potentially adjusting the graph, the user wants to save the 
 
 - **FR-007**: Plugin MUST render graph using a force-directed or hierarchical layout algorithm that automatically spaces nodes to minimize edge crossings and overlaps
 - **FR-008**: Plugin MUST complete initial graph layout within 2 seconds for graphs up to 1,000 nodes (performance target per constitution)
-- **FR-009**: Plugin MUST apply color coding to nodes: grey for literals, green for nodes that are objects of `rdf:type` predicate, blue for all other URI nodes
+- **FR-009**: Plugin MUST apply color coding to nodes: grey (#808080) for literals, yellow (#FFFF00) for blank nodes, green (#00FF00) for nodes that are objects of `rdf:type` predicate, blue (#0000FF) for all other URI nodes
 - **FR-010**: Plugin MUST label URI nodes with prefixed form (e.g., `ex:Person` instead of `http://example.org/Person`)
+- **FR-010a**: Plugin MUST label blank nodes with their generated identifier (e.g., `_:b1`, `_:b2`)
 - **FR-011**: Plugin MUST label literal nodes with the literal value only, excluding datatype suffix (e.g., `"John"` not `"John"^^xsd:string`)
 - **FR-012**: Plugin MUST label edges with the predicate URI in prefixed form
-- **FR-013**: Plugin MUST render the graph to fill 100% of available YASR container space both horizontally and vertically (responsive layout per constitution)
+- **FR-012a**: Plugin MUST render separate edges when multiple predicates connect the same two nodes, using curved or offset paths to prevent complete overlap
+- **FR-013**: Plugin MUST render all nodes using uniform shape (circle or ellipse) with fixed size, regardless of node type or label length
+- **FR-014**: Plugin MUST render the graph to fill 100% of available YASR container space both horizontally and vertically (responsive layout per constitution)
 
 #### User Interaction - Navigation
 
-- **FR-014**: Plugin MUST support viewport zooming via mouse wheel (scroll up to zoom in, scroll down to zoom out)
-- **FR-015**: Plugin MUST support viewport panning via click-and-drag on background
-- **FR-016**: Plugin MUST provide "zoom to extents" control that automatically scales and centers the graph to fit all nodes in viewport
-- **FR-017**: Plugin MUST maintain smooth rendering (no lag or jank) during zoom and pan operations
+- **FR-015**: Plugin MUST support viewport zooming via mouse wheel (scroll up to zoom in, scroll down to zoom out)
+- **FR-016**: Plugin MUST support viewport panning via click-and-drag on background
+- **FR-017**: Plugin MUST provide "zoom to extents" control that automatically scales and centers the graph to fit all nodes in viewport
+- **FR-018**: Plugin MUST maintain smooth rendering (no lag or jank) during zoom and pan operations
 
 #### User Interaction - Node Manipulation
 
-- **FR-018**: Plugin MUST allow users to drag individual nodes to new positions
-- **FR-019**: Plugin MUST update connected edges in real-time as nodes are dragged
-- **FR-020**: Plugin MUST maintain manually adjusted node positions when zooming or panning
+- **FR-019**: Plugin MUST allow users to drag individual nodes to new positions
+- **FR-020**: Plugin MUST update connected edges in real-time as nodes are dragged
+- **FR-021**: Plugin MUST maintain manually adjusted node positions when zooming or panning
 
 #### User Interaction - Tooltips
 
-- **FR-021**: Plugin MUST display tooltip on hover over URI nodes showing the full prefixed URI
-- **FR-022**: Plugin MUST display tooltip on hover over literal nodes showing the literal value with datatype (e.g., `"123"^^xsd:integer`)
-- **FR-023**: Plugin MUST display tooltip on hover over edges showing the full prefixed predicate URI
-- **FR-024**: Plugin MUST hide tooltips when cursor leaves element boundary (with ≤500ms delay)
+- **FR-022**: Plugin MUST display tooltip after 300ms hover delay over URI nodes showing the full prefixed URI
+- **FR-023**: Plugin MUST display tooltip after 300ms hover delay over literal nodes showing the literal value with datatype (e.g., `"123"^^xsd:integer`)
+- **FR-024**: Plugin MUST display tooltip after 300ms hover delay over blank nodes showing the generated identifier
+- **FR-025**: Plugin MUST display tooltip after 300ms hover delay over edges showing the full prefixed predicate URI
+- **FR-026**: Plugin MUST hide tooltips when cursor leaves element boundary (auto-hide on mouse leave)
 
 #### Export
 
-- **FR-025**: Plugin MUST provide "save as image" control that exports the current viewport as a downloadable image file
-- **FR-026**: Plugin MUST export image in PNG or SVG format with sufficient resolution for readable labels
+- **FR-027**: Plugin MUST provide "save as image" control that exports only the visible viewport content at current zoom/pan level as a downloadable image file
+- **FR-028**: Plugin MUST export image in PNG or SVG format with sufficient resolution for readable labels
 
 #### Edge Case Handling
 
-- **FR-027**: Plugin MUST display empty state message when CONSTRUCT query returns zero triples
-- **FR-028**: Plugin MUST handle self-referencing triples (subject equals object) by rendering loop edges
-- **FR-029**: Plugin MUST truncate very long URI labels with ellipsis while preserving full URI in tooltips
-- **FR-030**: Plugin MUST truncate literal labels exceeding ~50 characters while preserving full value in tooltips
-- **FR-031**: Plugin MUST de-duplicate identical triples to avoid rendering multiple edges between the same node pair
+- **FR-029**: Plugin MUST display empty state message when CONSTRUCT query returns zero triples
+- **FR-030**: Plugin MUST handle self-referencing triples (subject equals object) by rendering loop edges
+- **FR-031**: Plugin MUST handle blank nodes by creating nodes with generated labels and yellow color
+- **FR-032**: Plugin MUST render multiple predicates between the same node pair as separate parallel edges with curved/offset paths
+- **FR-033**: Plugin MUST truncate very long URI labels with ellipsis while preserving full URI in tooltips
+- **FR-034**: Plugin MUST truncate literal labels exceeding ~50 characters while preserving full value in tooltips
+- **FR-035**: Plugin MUST de-duplicate identical triples (same subject, predicate, object) to avoid rendering duplicate edges
 
 ### Key Entities
 
 - **GraphNode**: Represents either a subject or object from RDF triples
-  - Attributes: URI or literal value, node type (URI/literal), color (grey/green/blue), position (x, y coordinates), label (abbreviated form)
-  - Relationships: Connected to other nodes via edges
+  - Attributes: URI or literal value or blank node identifier, node type (URI/literal/blank), color (grey/yellow/green/blue), shape (uniform circle/ellipse), size (fixed), position (x, y coordinates), label (abbreviated form)
+  - Relationships: Connected to other nodes via edges (may have multiple edges with different predicates to same target)
 
 - **GraphEdge**: Represents a predicate connecting two nodes
   - Attributes: Predicate URI, source node, target node, label (abbreviated predicate)
@@ -183,7 +201,7 @@ After exploring and potentially adjusting the graph, the user wants to save the 
 ### Measurable Outcomes
 
 - **SC-001**: Users can visualize CONSTRUCT query results as graphs within 2 seconds of receiving results (for graphs up to 1,000 nodes)
-- **SC-002**: Users can identify node types (literal vs. URI vs. type instance) through color coding without reading labels
+- **SC-002**: Users can identify node types (literal vs. blank node vs. URI vs. type instance) through color coding without reading labels (grey/yellow/blue/green)
 - **SC-003**: Users can navigate graphs of any size by zooming and panning without performance degradation
 - **SC-004**: Users can export publication-ready images of graph visualizations with readable labels
 - **SC-005**: Users can reorganize graph layouts manually to improve understanding of relationships
