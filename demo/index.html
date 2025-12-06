@@ -202,10 +202,10 @@
     let tab;
     while ((tab = yasgui.getTab()) != null) {
       try {
-      tab.close();
+        tab.close();
       } catch (e) {
-      console.error('Failed to close tab:', e);
-      break;
+        console.error('Failed to close tab:', e);
+        break;
       }
     }
     
