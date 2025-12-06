@@ -14,7 +14,7 @@
   <title>YASGUI Graph Plugin Demo</title>
   
   <!-- YASGUI CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@zazuko/yasgui@4/build/yasgui.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@zazuko/yasgui@4.6.1/build/yasgui.min.css">
   
   <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -136,7 +136,7 @@
   <div id="yasgui"></div>
   
   <!-- YASGUI JavaScript -->
-  <script src="https://cdn.jsdelivr.net/npm/@zazuko/yasgui@4/build/yasgui.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@zazuko/yasgui@4.6.1/build/yasgui.min.js"></script>
   
   <!-- vis-network (required dependency) -->
   <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
@@ -158,88 +158,36 @@
     
     // Initialize YASGUI after plugin is registered
     const yasgui = new Yasgui(document.getElementById('yasgui'), {
-      endpoint: 'http://localhost:3030/g',
+      // Set the SPARQL endpoint
+      requestConfig: {
+        endpoint: 'http://localhost:3030/g',
+      },
+      yasr: {
+        pluginOrder: ['Table', 'Response', 'Graph'], 
+        defaultPlugin: 'Graph',
+      },
       copyEndpointOnNewTab: false,
     });
     
-    // Helper to create mock results from CONSTRUCT query
-    function createMockResults(query) {
-      const bindings = [];
-      
-      // Parse triples from CONSTRUCT clause
-      const constructMatch = query.match(/CONSTRUCT\s*{([^}]+)}/i);
-      if (!constructMatch) return { getBindings: () => [] };
-      
-      const constructBody = constructMatch[1];
-      const tripleLines = constructBody.split('\n')
-        .map(line => line.trim())
-        .filter(line => line && !line.startsWith('PREFIX'));
-      
-      tripleLines.forEach(line => {
-        // Simple triple parsing (subject predicate object .)
-        const match = line.match(/^([^\s]+)\s+([^\s]+)\s+(.+?)\s*\.?\s*$/);
-        if (match) {
-          const [, subject, predicate, objectStr] = match;
-          
-          // Parse object
-          let object;
-          if (objectStr.startsWith('"')) {
-            // Literal
-            const literalMatch = objectStr.match(/"([^"]+)"(?:\^\^<([^>]+)>)?/);
-            if (literalMatch) {
-              object = {
-                value: literalMatch[1],
-                type: 'literal',
-                datatype: literalMatch[2]
-              };
-            } else {
-              object = { value: objectStr.replace(/"/g, ''), type: 'literal' };
-            }
-          } else {
-            // URI or blank node
-            object = {
-              value: objectStr.replace(/<|>/g, ''),
-              type: objectStr.startsWith('_:') ? 'bnode' : 'uri'
-            };
-          }
-          
-          bindings.push({
-            subject: { value: subject.replace(/<|>/g, ''), type: subject.startsWith('_:') ? 'bnode' : 'uri' },
-            predicate: { value: predicate.replace(/<|>/g, ''), type: 'uri' },
-            object: object
-          });
-        }
-      });
-      
-      return {
-        getBindings: () => bindings,
-        getVariables: () => ({ prefixes: {
-          'ex': 'http://example.org/',
-          'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
-          'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
-          'owl': 'http://www.w3.org/2002/07/owl#',
-          'xsd': 'http://www.w3.org/2001/XMLSchema#'
-        }}),
-        getResponseTime: () => 0,
-        getType: () => 'construct',
-        getOriginalResponseAsString: () => '',
-        getOriginalResponse: () => null,
-        getError: () => null,
-        getContentType: () => 'text/turtle'
-      };
-    }
-    
     // Add sample query tabs
     const tabs = [
-      { name: 'Basic Graph', query: queries.basic },
       { name: 'Ontology', query: queries.ontology },
       { name: 'Blank Nodes', query: queries.blankNodes },
       { name: 'Multiple Edges', query: queries.multiplePredicates },
-      { name: 'DESCRIBE Query', query: queries.describe }
+      { name: 'DESCRIBE Query', query: queries.describe },
+      { name: 'Basic Graph', query: queries.basic },
     ];
     
-    // Clear default tab
-    yasgui.getTab().close();
+    // Close all existing tabs
+    let tab;
+    while ((tab = yasgui.getTab()) != null) {
+      try {
+      tab.close();
+      } catch (e) {
+      console.error('Failed to close tab:', e);
+      break;
+      }
+    }
     
     // Add sample tabs
     tabs.forEach((tab, index) => {
@@ -249,14 +197,7 @@
           name: tab.name,
           yasqe: { value: tab.query }
         }
-      );
-      
-      // Simulate query results for demo (since we have no real endpoint)
-      setTimeout(() => {
-        // Mock CONSTRUCT results
-        yasguiTab.yasr.results = createMockResults(tab.query);
-        yasguiTab.yasr.draw();
-      }, 100);
+      );      
     });
   </script>
 </body>
