@@ -144,16 +144,36 @@
   <!-- Sample queries -->
   <script src="./queries.js"></script>
   
-  <!-- Graph Plugin - DEV MODE (load source files directly) -->
+  <!-- Graph Plugin: Load from source in dev, or from dist in production -->
   <script type="module">
-    // Import all source modules
-    import GraphPlugin from '../src/GraphPlugin.js';
+    // Try to load from source (development mode)
+    let pluginLoaded = false;
+    try {
+      const { default: GraphPlugin } = await import('../src/GraphPlugin.js');
+      if (window.Yasgui && window.Yasgui.Yasr) {
+        window.Yasgui.Yasr.registerPlugin('Graph', GraphPlugin);
+        pluginLoaded = true;
+        console.log('Graph Plugin loaded from source (dev mode)');
+      }
+    } catch (error) {
+      console.log('Source not available, loading from bundle (production mode)');
+    }
     
-    // Register plugin with YASGUI
-    if (window.Yasgui && window.Yasgui.Yasr) {
-      window.Yasgui.Yasr.registerPlugin('Graph', GraphPlugin);
-    } else {
-      console.error('YASGUI not loaded');
+    // Fall back to bundle if source didn't work
+    if (!pluginLoaded) {
+      const script = document.createElement('script');
+      script.src = './dist/yasgui-graph-plugin.min.js';
+      await new Promise((resolve, reject) => {
+        script.onload = () => {
+          console.log('Graph Plugin loaded from bundle');
+          resolve();
+        };
+        script.onerror = () => {
+          console.error('Failed to load Graph Plugin bundle');
+          reject();
+        };
+        document.head.appendChild(script);
+      });
     }
     
     // Initialize YASGUI after plugin is registered

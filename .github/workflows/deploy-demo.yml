@@ -37,6 +37,11 @@ jobs:
       - name: Build plugin
         run: npm run build
 
+      - name: Copy dist to demo
+        run: |
+          mkdir -p demo/dist
+          cp -r dist/* demo/dist/
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
