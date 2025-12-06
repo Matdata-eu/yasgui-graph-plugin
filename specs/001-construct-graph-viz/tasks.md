@@ -62,7 +62,7 @@
 - [X] T020 [US1] Implement GraphPlugin.draw() method: clear this.yasr.resultsEl, parse triples via parseConstructResults(), extract prefixes via extractPrefixes(), transform via triplesToGraph()
 - [X] T021 [US1] In GraphPlugin.draw(), create container div with 100% width/height, append to this.yasr.resultsEl
 - [X] T022 [US1] In GraphPlugin.draw(), create vis.DataSet for nodes and edges, instantiate vis.Network with container, data, and options from getDefaultNetworkOptions()
-- [X] T023 [US1] In GraphPlugin.draw(), handle stabilizationIterationsDone event to disable physics after layout completes (performance optimization per constitution)
+- [X] T023 [US1] In GraphPlugin.draw(), handle stabilizationIterationsDone event to keep physics enabled after layout completes (can be disabled later if user feedback indicates performance issues)
 - [X] T024 [US1] In GraphPlugin.draw(), add error handling to display empty state message if zero triples, or error message if parsing fails
 - [X] T025 [US1] Handle blank nodes in createNodeMap(): detect _:b* identifiers, assign yellow color #FFFF00, generate label "_:b1" etc.
 - [X] T026 [US1] Handle multiple predicates between same nodes in createEdgesArray(): create separate edge for each predicate, vis-network will curve them automatically

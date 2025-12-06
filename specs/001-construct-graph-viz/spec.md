@@ -11,7 +11,7 @@
 
 - Q: What visual styling should be used for graph nodes to distinguish between different node types and content lengths? → A: All nodes use uniform shape (circle/ellipse) with fixed size, regardless of label length or type
 - Q: How should tooltips be triggered and displayed to balance information access with usability? → A: Hover only with 300ms delay before showing, auto-hide on mouse leave
-- Q: How should the plugin handle blank nodes (anonymous RDF nodes with no URI) that appear in CONSTRUCT results? → A: Display with generated label but use unique color (e.g., yellow) to distinguish from literals
+- Q: How should the plugin handle blank nodes (anonymous RDF nodes with no URI) that appear in CONSTRUCT results? → A: Display with generated label but use unique orange color (#e15b13ff) to distinguish from literals
 - Q: When the same subject and object are connected by multiple different predicates, how should these be displayed? → A: Draw separate parallel edges for each predicate (may overlap/curve to show multiple)
 
 ## User Scenarios & Testing *(mandatory)*
@@ -92,7 +92,7 @@ While exploring the graph, the user wants to see detailed information about node
 - **Very long literals**: How are literals with thousands of characters displayed? → Truncate label to ~50 characters, full value in tooltip
 - **Duplicate triples**: What happens when identical triples appear multiple times? → Display as single edge (no duplicate edges between same nodes with same predicate)
 - **Multiple predicates between same nodes**: What happens when `<A> <p1> <B>` and `<A> <p2> <B>` exist? → Draw separate parallel edges for each predicate (edges may curve/offset to avoid complete overlap)
-- **Blank nodes**: How are anonymous RDF nodes (e.g., `_:b1`) displayed? → Show with generated label ("_:b1") in unique yellow color to distinguish from literals and URIs
+- **Blank nodes**: How are anonymous RDF nodes (e.g., `_:b1`) displayed? → Show with generated label ("_:b1") in unique orange color (#e15b13ff) to distinguish from literals and URIs
 - **Self-referencing triples**: What happens when subject equals object (e.g., `<A> <related> <A>`)? → Display as loop edge from node to itself
 - **No prefixes defined**: What happens when SPARQL results don't include prefix definitions? → Only show the part of the URI after last `/` or `#` as label
 - **Large graphs (1000+ triples)**: How does the plugin handle performance with many nodes? → Initial layout completes within 2 seconds; warn user if exceeds rendering capacity
@@ -116,7 +116,7 @@ While exploring the graph, the user wants to see detailed information about node
 
 - **FR-007**: Plugin MUST render graph using a force-directed or hierarchical layout algorithm that automatically spaces nodes to minimize edge crossings and overlaps
 - **FR-008**: Plugin MUST complete initial graph layout within 2 seconds for graphs up to 1,000 nodes (performance target per constitution)
-- **FR-009**: Plugin MUST apply color coding to nodes: grey (#808080) for literals, yellow (#FFFF00) for blank nodes, green (#00FF00) for nodes that are objects of `rdf:type` predicate, blue (#0000FF) for all other URI nodes
+- **FR-009**: Plugin MUST apply color coding to nodes: light grey (#c5c5c5ff) for literals, orange (#e15b13ff) for blank nodes, light green (#a6c8a6ff) for nodes that are objects of `rdf:type` predicate, light blue (#97C2FC) for all other URI nodes
 - **FR-010**: Plugin MUST label URI nodes with prefixed form (e.g., `ex:Person` instead of `http://example.org/Person`)
 - **FR-010a**: Plugin MUST label blank nodes with their generated identifier (e.g., `_:b1`, `_:b2`)
 - **FR-011**: Plugin MUST label literal nodes with the literal value only, excluding datatype suffix (e.g., `"John"` not `"John"^^xsd:string`)
@@ -150,7 +150,7 @@ While exploring the graph, the user wants to see detailed information about node
 
 - **FR-028**: Plugin MUST display empty state message when CONSTRUCT query returns zero triples
 - **FR-029**: Plugin MUST handle self-referencing triples (subject equals object) by rendering loop edges
-- **FR-030**: Plugin MUST handle blank nodes by creating nodes with generated labels and yellow color
+- **FR-030**: Plugin MUST handle blank nodes by creating nodes with generated labels and orange color (#e15b13ff)
 - **FR-031**: Plugin MUST render multiple predicates between the same node pair as separate parallel edges with curved/offset paths
 - **FR-032**: Plugin MUST truncate very long URI labels with ellipsis while preserving full URI in tooltips
 - **FR-033**: Plugin MUST truncate literal labels exceeding ~50 characters while preserving full value in tooltips
@@ -159,7 +159,7 @@ While exploring the graph, the user wants to see detailed information about node
 ### Key Entities
 
 - **GraphNode**: Represents either a subject or object from RDF triples
-  - Attributes: URI or literal value or blank node identifier, node type (URI/literal/blank), color (grey/yellow/green/blue), shape (uniform circle/ellipse), size (fixed), position (x, y coordinates), label (abbreviated form)
+  - Attributes: URI or literal value or blank node identifier, node type (URI/literal/blank), color (light grey/orange/light green/light blue), shape (uniform circle/ellipse), size (fixed), position (x, y coordinates), label (abbreviated form)
   - Relationships: Connected to other nodes via edges (may have multiple edges with different predicates to same target)
 
 - **GraphEdge**: Represents a predicate connecting two nodes
@@ -179,7 +179,7 @@ While exploring the graph, the user wants to see detailed information about node
 ### Measurable Outcomes
 
 - **SC-001**: Users can visualize CONSTRUCT query results as graphs within 2 seconds of receiving results (for graphs up to 1,000 nodes)
-- **SC-002**: Users can identify node types (literal vs. blank node vs. URI vs. type instance) through color coding without reading labels (grey/yellow/blue/green)
+- **SC-002**: Users can identify node types (literal vs. blank node vs. URI vs. type instance) through color coding without reading labels (light grey/orange/light blue/light green)
 - **SC-003**: Users can navigate graphs of any size by zooming and panning without performance degradation
 - **SC-004**: Users can reorganize graph layouts manually to improve understanding of relationships
 - **SC-005**: Users can access full URI details for any node or edge via hover tooltips

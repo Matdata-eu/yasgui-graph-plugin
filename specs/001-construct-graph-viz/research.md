@@ -240,7 +240,7 @@ function triplesToGraph(triples, prefixes) {
 
 ### 4. Color Coding Logic
 
-**Question**: How to implement the color scheme (grey for literals, green for rdf:type objects, blue for other URIs)?
+**Question**: How to implement the color scheme (light grey for literals, light green for rdf:type objects, light blue for other URIs, orange for blank nodes)?
 
 **Implementation**:
 ```javascript
@@ -272,7 +272,7 @@ nodes: {
 }
 ```
 
-**Decision**: Calculate color during node creation, pass to vis-network node data. Use hex codes: `#808080` (grey), `#00FF00` (green), `#0000FF` (blue).
+**Decision**: Calculate color during node creation, pass to vis-network node data. Use hex codes: `#c5c5c5ff` (light grey), `#a6c8a6ff` (light green), `#97C2FC` (light blue), `#e15b13ff` (orange).
 
 ### 5. Prefix Handling
 
