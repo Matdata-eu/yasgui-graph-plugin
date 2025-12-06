@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<!--
+  YASGUI Graph Plugin - Live Development Demo
+  
+  This demo loads ES modules directly from src/ for instant live reload.
+  Edit any source file (e.g., src/colorUtils.js) and refresh to see changes!
+  
+  For production builds, run: npm run build
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YASGUI Graph Plugin Demo</title>
+  
+  <!-- YASGUI CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@zazuko/yasgui@4/build/yasgui.min.css">
+  
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      padding-top: 0px;
+      background: #f5f5f5;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 5px;
+    }
+    
+    .instructions {
+      background: white;
+      padding: 5px;
+      border-radius: 4px;
+      margin-bottom: 5px;      
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .instructions h2 {
+      margin-top: 0;
+      font-size: 18px;
+      color: #2196F3;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .instructions h2:hover {
+      color: #0b7dda;
+    }
+    
+    .toggle-icon {
+      transition: transform 0.3s ease;
+      font-size: 14px;
+    }
+    
+    .toggle-icon.collapsed {
+      transform: rotate(-90deg);
+    }
+    
+    .instructions-content {
+      max-height: 500px;
+      overflow: hidden;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+      opacity: 1;
+    }
+    
+    .instructions-content.collapsed {
+      max-height: 0;
+      opacity: 0;
+    }
+    
+    .instructions ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    
+    .instructions li {
+      margin: 5px 0;
+    }
+    
+    .instructions code {
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+    
+    #yasgui {
+      height: 800px;
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>🔷 YASGUI Graph Plugin Demo</h1>
+  
+  <div class="instructions">
+    <h2 onclick="toggleInstructions()">
+      <span class="toggle-icon collapsed">▼</span>
+      <span>📖 Instructions</span>
+    </h2>
+    <div class="instructions-content collapsed">
+      <ul>
+        <li>Click the <strong>"Graph"</strong> tab after running a CONSTRUCT query</li>
+        <li><strong>Sample queries</strong> are pre-loaded (see tabs: Basic, Ontology, Blank Nodes, Multiple Edges)</li>
+        <li><strong>Navigate</strong>: Mouse wheel to zoom, drag background to pan, click "Zoom to Fit" button</li>
+        <li><strong>Reorganize</strong>: Drag individual nodes to rearrange the layout</li>
+        <li><strong>Inspect</strong>: Hover over nodes/edges to see full details (300ms delay)</li>
+        <li><strong>Export</strong>: Click "Export PNG" to save the current viewport as an image</li>
+        <li><strong>Color coding</strong>: <span style="color: #c5c5c5ff">⬤ Grey</span> = literals, 
+            <span style="color: #e15b13ff">⬤ Orange</span> = blank nodes, 
+            <span style="color: #a6c8a6ff">⬤ Green</span> = rdf:type objects, 
+            <span style="color: #97C2FC">⬤ Blue</span> = other URIs</li>
+      </ul>
+    </div>
+  </div>
+  
+  <script>
+    function toggleInstructions() {
+      const content = document.querySelector('.instructions-content');
+      const icon = document.querySelector('.toggle-icon');
+      content.classList.toggle('collapsed');
+      icon.classList.toggle('collapsed');
+    }
+  </script>
+  
+  <div id="yasgui"></div>
+  
+  <!-- YASGUI JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/@zazuko/yasgui@4/build/yasgui.min.js"></script>
+  
+  <!-- vis-network (required dependency) -->
+  <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+  
+  <!-- Sample queries -->
+  <script src="./queries.js"></script>
+  
+  <!-- Graph Plugin - DEV MODE (load source files directly) -->
+  <script type="module">
+    // Import all source modules
+    import GraphPlugin from '../src/GraphPlugin.js';
+    
+    // Register plugin with YASGUI
+    if (window.Yasgui && window.Yasgui.Yasr) {
+      window.Yasgui.Yasr.registerPlugin('Graph', GraphPlugin);
+    } else {
+      console.error('YASGUI not loaded');
+    }
+    
+    // Initialize YASGUI after plugin is registered
+    const yasgui = new Yasgui(document.getElementById('yasgui'), {
+      endpoint: 'http://localhost:3030/g',
+      copyEndpointOnNewTab: false,
+    });
+    
+    // Helper to create mock results from CONSTRUCT query
+    function createMockResults(query) {
+      const bindings = [];
+      
+      // Parse triples from CONSTRUCT clause
+      const constructMatch = query.match(/CONSTRUCT\s*{([^}]+)}/i);
+      if (!constructMatch) return { getBindings: () => [] };
+      
+      const constructBody = constructMatch[1];
+      const tripleLines = constructBody.split('\n')
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('PREFIX'));
+      
+      tripleLines.forEach(line => {
+        // Simple triple parsing (subject predicate object .)
+        const match = line.match(/^([^\s]+)\s+([^\s]+)\s+(.+?)\s*\.?\s*$/);
+        if (match) {
+          const [, subject, predicate, objectStr] = match;
+          
+          // Parse object
+          let object;
+          if (objectStr.startsWith('"')) {
+            // Literal
+            const literalMatch = objectStr.match(/"([^"]+)"(?:\^\^<([^>]+)>)?/);
+            if (literalMatch) {
+              object = {
+                value: literalMatch[1],
+                type: 'literal',
+                datatype: literalMatch[2]
+              };
+            } else {
+              object = { value: objectStr.replace(/"/g, ''), type: 'literal' };
+            }
+          } else {
+            // URI or blank node
+            object = {
+              value: objectStr.replace(/<|>/g, ''),
+              type: objectStr.startsWith('_:') ? 'bnode' : 'uri'
+            };
+          }
+          
+          bindings.push({
+            subject: { value: subject.replace(/<|>/g, ''), type: subject.startsWith('_:') ? 'bnode' : 'uri' },
+            predicate: { value: predicate.replace(/<|>/g, ''), type: 'uri' },
+            object: object
+          });
+        }
+      });
+      
+      return {
+        getBindings: () => bindings,
+        getVariables: () => ({ prefixes: {
+          'ex': 'http://example.org/',
+          'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+          'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
+          'owl': 'http://www.w3.org/2002/07/owl#',
+          'xsd': 'http://www.w3.org/2001/XMLSchema#'
+        }}),
+        getResponseTime: () => 0,
+        getType: () => 'construct',
+        getOriginalResponseAsString: () => '',
+        getOriginalResponse: () => null,
+        getError: () => null,
+        getContentType: () => 'application/sparql-results+json'
+      };
+    }
+    
+    // Add sample query tabs
+    const tabs = [
+      { name: 'Basic Graph', query: queries.basic },
+      { name: 'Ontology', query: queries.ontology },
+      { name: 'Blank Nodes', query: queries.blankNodes },
+      { name: 'Multiple Edges', query: queries.multiplePredicates }
+    ];
+    
+    // Clear default tab
+    yasgui.getTab().close();
+    
+    // Add sample tabs
+    tabs.forEach((tab, index) => {
+      const yasguiTab = yasgui.addTab(
+        true, // set active
+        { 
+          name: tab.name,
+          yasqe: { value: tab.query }
+        }
+      );
+      
+      // Simulate query results for demo (since we have no real endpoint)
+      setTimeout(() => {
+        // Mock CONSTRUCT results
+        yasguiTab.yasr.results = createMockResults(tab.query);
+        yasguiTab.yasr.draw();
+      }, 100);
+    });
+  </script>
+</body>
+</html>
