@@ -24,11 +24,11 @@ A YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as i
 ### NPM
 
 ```bash
-npm install @matdata/yasgui-graph-plugin @zazuko/yasgui vis-network
+npm install @matdata/yasgui-graph-plugin @matdata/yasgui vis-network
 ```
 
 ```javascript
-import Yasgui from '@zazuko/yasgui';
+import Yasgui from '@matdata/yasgui';
 import GraphPlugin from '@matdata/yasgui-graph-plugin';
 
 Yasgui.Yasr.registerPlugin('Graph', GraphPlugin);
@@ -40,8 +40,8 @@ const yasgui = new Yasgui(document.getElementById('yasgui'));
 
 ```html
 <!-- YASGUI -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@zazuko/yasgui@4/build/yasgui.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@zazuko/yasgui@4/build/yasgui.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.0.0/build/yasgui.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.0.0/build/yasgui.min.js"></script>
 
 <!-- Graph Plugin -->
 <script src="https://cdn.jsdelivr.net/npm/@matdata/yasgui-graph-plugin/dist/yasgui-graph-plugin.min.js"></script>
@@ -197,8 +197,8 @@ Contributions welcome! Please follow the project constitution (`.specify/memory/
 ## 🙏 Acknowledgments
 
 - Built with [vis-network](https://visjs.github.io/vis-network/) for graph rendering
-- Integrates with [YASGUI](https://github.com/zazuko/yasgui) SPARQL editor
-- Follows the [yasgui-geo](https://github.com/zazuko/yasgui-geo) plugin pattern
+- Integrates with [YASGUI](https://github.com/matdata/yasgui) SPARQL editor
+- Follows the [yasgui-geo](https://github.com/matdata/yasgui-geo) plugin pattern
 
 ## 📊 Project Status
 

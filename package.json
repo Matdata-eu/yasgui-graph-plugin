@@ -37,7 +37,7 @@
     "vis-network": "^9.1.9"
   },
   "peerDependencies": {
-    "@zazuko/yasgui": "^4.0.0"
+    "@matdata/yasgui": "^5.0.0"
   },
   "devDependencies": {
     "vite": "^5.0.0",
