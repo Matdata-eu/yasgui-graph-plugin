@@ -14,7 +14,7 @@ Represents a unique subject or object from RDF triples in the visualization.
 - `id` (Number): Unique numeric identifier for vis-network (auto-incremented)
 - `uri` (String | null): Full URI for URI nodes, null for literals
 - `label` (String): Display text (prefixed URI or literal value, truncated if needed)
-- `color` (String): Hex color code - `#808080` (grey, literals), `#00FF00` (green, rdf:type objects), `#0000FF` (blue, other URIs)
+- `color` (String): Hex color code - `#c5c5c5ff` (light grey, literals), `#a6c8a6ff` (light green, rdf:type objects), `#97C2FC` (light blue, other URIs), `#e15b13ff` (orange, blank nodes)
 - `type` (Enum): `'uri'` or `'literal'`
 - `fullValue` (String): Un-truncated value for tooltip display
 
@@ -33,7 +33,7 @@ Represents a unique subject or object from RDF triples in the visualization.
   id: 1,
   uri: 'http://example.org/Person',
   label: 'ex:Person',
-  color: '#00FF00', // Green if object of rdf:type
+  color: '#a6c8a6ff', // Light green if object of rdf:type
   type: 'uri',
   fullValue: 'http://example.org/Person'
 }
@@ -42,7 +42,7 @@ Represents a unique subject or object from RDF triples in the visualization.
   id: 2,
   uri: null,
   label: 'John',
-  color: '#808080', // Grey for literals
+  color: '#c5c5c5ff', // Light grey for literals
   type: 'literal',
   fullValue: '"John"^^xsd:string'
 }

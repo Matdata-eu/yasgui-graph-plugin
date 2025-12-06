@@ -9,7 +9,7 @@
 **Decision**: Use **vis-network** for graph visualization with YASR plugin architecture pattern from yasgui-geo example.
 
 **Key Findings**:
-- vis-network provides built-in force-directed layout, zoom/pan, drag nodes, and export capabilities
+- vis-network provides built-in force-directed layout, zoom/pan and drag nodes capabilities
 - YASR plugin pattern requires: constructor, canHandleResults(), draw(), getIcon(), priority, label
 - No additional layout libraries needed - vis-network handles all requirements
 - Browser compatibility excellent (ES2018+ with Canvas rendering)
@@ -32,7 +32,6 @@
 - **Built-in physics engine**: Force-directed and hierarchical layouts out of the box, no additional configuration
 - **Interaction model**: Native support for zoom (mouse wheel), pan (drag background), node dragging, tooltips (hover events)
 - **Performance**: Handles 1000+ nodes smoothly with physics stabilization optimization
-- **Export**: Built-in methods for canvas-to-image conversion (PNG/SVG via canvas API)
 - **API simplicity**: `Network(container, data, options)` - single constructor with straightforward data model
 - **Browser compatibility**: Canvas-based rendering, works on all modern browsers (Chrome, Firefox, Safari, Edge)
 - **Size**: ~500KB minified (~150KB gzipped) - reasonable for functionality provided
@@ -241,7 +240,7 @@ function triplesToGraph(triples, prefixes) {
 
 ### 4. Color Coding Logic
 
-**Question**: How to implement the color scheme (grey for literals, green for rdf:type objects, blue for other URIs)?
+**Question**: How to implement the color scheme (light grey for literals, light green for rdf:type objects, light blue for other URIs, orange for blank nodes)?
 
 **Implementation**:
 ```javascript
@@ -273,7 +272,7 @@ nodes: {
 }
 ```
 
-**Decision**: Calculate color during node creation, pass to vis-network node data. Use hex codes: `#808080` (grey), `#00FF00` (green), `#0000FF` (blue).
+**Decision**: Calculate color during node creation, pass to vis-network node data. Use hex codes: `#c5c5c5ff` (light grey), `#a6c8a6ff` (light green), `#97C2FC` (light blue), `#e15b13ff` (orange).
 
 ### 5. Prefix Handling
 
@@ -313,34 +312,7 @@ function applyPrefix(uri, prefixes) {
 
 **Decision**: Extract prefixes from YASR query context, apply to all URIs. Include common RDF/RDFS/XSD defaults. Truncate unprefixed URIs with ellipsis.
 
-### 6. Export Image Functionality
-
-**Question**: How to implement "save as image" for current viewport?
-
-**vis-network approach**:
-```javascript
-// Get canvas element from network
-const canvas = network.canvas.frame.canvas;
-
-// Export as PNG
-function exportPNG() {
-  canvas.toBlob(blob => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'graph-visualization.png';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-}
-
-// Export as SVG (requires dom-to-image library or manual SVG creation)
-// vis-network doesn't directly support SVG export, PNG is primary format
-```
-
-**Decision**: Implement PNG export using canvas.toBlob(). SVG export would require additional library (dom-to-image) - defer to future enhancement, PNG sufficient for success criteria.
-
-### 7. Performance Optimization
+### 6. Performance Optimization
 
 **Question**: How to meet <2s rendering target for 1000 nodes?
 
@@ -373,7 +345,7 @@ const options = {
 
 **Decision**: Use default physics settings with 200 iteration limit. Disable physics after stabilization to improve interaction performance. Monitor performance in testing phase.
 
-### 8. Responsive Layout
+### 7. Responsive Layout
 
 **Question**: How to ensure graph fills 100% of YASR container space?
 
@@ -461,11 +433,7 @@ setTimeout(() => network.fit(), 100);
 - Hover tooltips (vis-network hover events + custom overlay)
 - Show full URI/literal/datatype
 
-### Phase 5: Export (P5)
-- PNG export from canvas
-- Download trigger
-
-### Phase 6: Edge Cases & Polish
+### Phase 5: Edge Cases & Polish
 - Empty state handling
 - Self-loop rendering (vis-network supports)
 - Label truncation
@@ -477,7 +445,6 @@ setTimeout(() => network.fit(), 100);
 None - all critical technical unknowns resolved. Remaining questions are implementation details:
 - Exact hex color values (resolved: #808080, #00FF00, #0000FF)
 - Tooltip styling (CSS, standard approach)
-- Export button placement (within plugin container, consistent with YASR patterns)
 - Error messaging for unsupported results (empty state div with message)
 
 ## References

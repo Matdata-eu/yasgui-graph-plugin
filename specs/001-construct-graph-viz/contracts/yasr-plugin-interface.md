@@ -233,50 +233,6 @@ getIcon() {
 
 **Side Effects**: None (creates new element each call)
 
-## Optional Methods
-
-### `download(filename)`
-
-**Signature**:
-```typescript
-download(filename: string): void
-```
-
-**Purpose**: Export visualization to file (triggered by YASR download button)
-
-**Contract**:
-- Should export visualization in suitable format (PNG, SVG)
-- `filename` is suggested name (may need extension)
-- Must handle case where visualization not yet rendered
-- Optional: YASR shows download button only if method exists
-
-**Example**:
-```javascript
-download(filename) {
-  if (!this.network) {
-    console.warn('No visualization to download');
-    return;
-  }
-  
-  // Export as PNG
-  const canvas = this.container.querySelector('canvas');
-  if (canvas) {
-    canvas.toBlob(blob => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filename}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-  }
-}
-```
-
-**Return**: void
-
-**Side Effects**: Triggers browser download
-
 ## Data Access Patterns
 
 ### Accessing Query Results
@@ -362,14 +318,7 @@ try {
 │ - Create visualization              │
 │ - Append to resultsEl               │
 └─────────────────────────────────────┘
-          │
-          │ User clicks download button
-          ↓
-┌─────────────────────────────────────┐
-│ download(filename)                  │
-│ - Export visualization              │
-│ - Trigger browser download          │
-└─────────────────────────────────────┘
+
 ```
 
 ## Testing Contract Compliance

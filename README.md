@@ -3,16 +3,16 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![npm version](https://img.shields.io/npm/v/yasgui-graph-plugin.svg)](https://www.npmjs.com/package/yasgui-graph-plugin)
 
-A YASGUI plugin for visualizing SPARQL CONSTRUCT query results as interactive graphs with nodes (subjects/objects) and edges (predicates).
+A YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as interactive graphs with nodes (subjects/objects) and edges (predicates).
 
 ## ✨ Features
 
 - **🔷 Interactive Graph Visualization**: Automatic force-directed layout with smooth physics-based positioning
 - **🎨 Smart Color Coding**: 
-  - 🔵 Blue = URIs
-  - 🟢 Green = rdf:type objects (classes)
-  - 🔘 Grey = Literals
-  - 🟡 Yellow = Blank nodes
+  - 🔵 Light Blue (#97C2FC) = URIs
+  - 🟢 Light Green (#a6c8a6ff) = rdf:type objects (classes)
+  - ⚪ Light Grey (#c5c5c5ff) = Literals
+  - 🟠 Orange (#e15b13ff) = Blank nodes
 - **🔍 Navigation**: Mouse wheel zoom, drag to pan, "Zoom to Fit" button
 - **✋ Drag & Drop**: Reorganize nodes by dragging them to new positions
 - **💬 Tooltips**: Hover for full URI/literal details (300ms delay)
@@ -66,8 +66,9 @@ const yasgui = new Yasgui(document.getElementById('yasgui'), {
 });
 ```
 
-### Sample CONSTRUCT Query
+### Sample Queries
 
+**CONSTRUCT Query:**
 ```sparql
 PREFIX ex: <http://example.org/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -80,6 +81,14 @@ CONSTRUCT {
   ex:Bob ex:name "Bob" .
 }
 WHERE {}
+```
+
+**DESCRIBE Query:**
+```sparql
+PREFIX ex: <http://example.org/>
+
+# Returns all triples about the specified resources
+DESCRIBE ex:Alice ex:Bob
 ```
 
 After running the query, click the **"Graph"** tab to see the visualization.
@@ -99,10 +108,10 @@ After running the query, click the **"Graph"** tab to see the visualization.
 
 | Color | Meaning | Example |
 |-------|---------|---------|
-| 🔵 Blue | URI nodes | `ex:Person`, `ex:Alice` |
-| 🟢 Green | rdf:type objects (classes) | `ex:Person` in `ex:Alice rdf:type ex:Person` |
-| 🔘 Grey | Literal values | `"Alice"`, `"30"^^xsd:integer` |
-| 🟡 Yellow | Blank nodes | `_:b1`, `_:addr1` |
+| 🔵 Light Blue (#97C2FC) | URI nodes | `ex:Person`, `ex:Alice` |
+| 🟢 Light Green (#a6c8a6ff) | rdf:type objects (classes) | `ex:Person` in `ex:Alice rdf:type ex:Person` |
+| ⚪ Light Grey (#c5c5c5ff) | Literal values | `"Alice"`, `"30"^^xsd:integer` |
+| 🟠 Orange (#e15b13ff) | Blank nodes | `_:b1`, `_:addr1` |
 
 ## ⚙️ Configuration
 
@@ -213,17 +222,18 @@ Contributions welcome! Please follow the project constitution (`.specify/memory/
 ## 🐛 Troubleshooting
 
 ### Plugin tab not showing
-- Ensure query type is **CONSTRUCT** (not SELECT/ASK/DESCRIBE)
+- Verify plugin is registered correctly
 - Check browser console for errors
 - Verify YASGUI version is ^4.0.0
 
 ### Empty visualization
-- Confirm CONSTRUCT query returns triples (check "Table" or "Response" tab)
-- Verify results have subject/predicate/object structure
+- Ensure query type is **CONSTRUCT** or **DESCRIBE**
+- Confirm query returns triples (check "Table" or "Response" tab)
+- Verify results have RDF structure
 
 ### Performance issues
 - Limit results to <1000 nodes for best performance
-- Disable physics after initial layout (automatic)
+- Disable physics after initial layout
 - Consider using LIMIT clause in SPARQL query
 
 For more help, see [Quickstart Guide - Troubleshooting](./specs/001-construct-graph-viz/quickstart.md#troubleshooting).

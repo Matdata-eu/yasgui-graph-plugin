@@ -374,27 +374,6 @@ network.once('stabilizationIterationsDone', () => {
   network.setOptions({physics: {enabled: false}});
 });
 ```
-
-## Export Functionality
-
-```javascript
-// Get canvas element
-const canvas = network.canvas.frame.canvas;
-
-// Export as PNG
-canvas.toBlob(blob => {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'graph.png';
-  link.click();
-  URL.revokeObjectURL(url);
-}, 'image/png');
-
-// Or get data URL
-const dataURL = canvas.toDataURL('image/png');
-```
-
 ## Performance Optimization
 
 ### Disable Physics After Layout
