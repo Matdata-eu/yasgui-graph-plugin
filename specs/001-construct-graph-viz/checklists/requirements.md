@@ -35,14 +35,13 @@
 
 **Clarity Assessment**:
 - 5 user stories prioritized (P1-P5) with clear dependencies
-- 31 functional requirements organized by category (parsing, rendering, interaction, export, edge cases)
+- 31 functional requirements organized by category (parsing, rendering, interaction, edge cases)
 - 11 edge cases explicitly handled with defined behaviors
 - 8 success criteria all measurable and technology-agnostic
 - 8 assumptions documented for context
 
 **No Clarifications Needed**: Specification is complete with informed defaults applied:
 - Layout algorithm: Force-directed or hierarchical (standard graph viz approach)
-- Export format: PNG/SVG (industry standard image formats)
 - Performance target: 2 seconds for 1,000 nodes (aligned with constitution)
 - Color scheme: Grey/green/blue with semantic meaning (clear visual hierarchy)
 - Label truncation: ~50 chars for literals (reasonable reading length)

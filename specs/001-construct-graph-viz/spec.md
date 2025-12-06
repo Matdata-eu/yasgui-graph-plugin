@@ -3,13 +3,12 @@
 **Feature Branch**: `001-construct-graph-viz`  
 **Created**: 2025-12-05  
 **Status**: Draft  
-**Input**: User description: "Visualize SPARQL CONSTRUCT query results as interactive graphs with nodes (subjects/objects) and edges (predicates), supporting zoom, drag, tooltips, color coding, and image export"
+**Input**: User description: "Visualize SPARQL CONSTRUCT query results as interactive graphs with nodes (subjects/objects) and edges (predicates), supporting zoom, drag, tooltips and color coding"
 
 ## Clarifications
 
 ### Session 2025-12-06
 
-- Q: When a user exports the graph visualization as an image, what should be the exact scope of the export? → A: Export only the visible viewport content at current zoom/pan level (what user currently sees)
 - Q: What visual styling should be used for graph nodes to distinguish between different node types and content lengths? → A: All nodes use uniform shape (circle/ellipse) with fixed size, regardless of label length or type
 - Q: How should tooltips be triggered and displayed to balance information access with usability? → A: Hover only with 300ms delay before showing, auto-hide on mouse leave
 - Q: How should the plugin handle blank nodes (anonymous RDF nodes with no URI) that appear in CONSTRUCT results? → A: Display with generated label but use unique color (e.g., yellow) to distinguish from literals
@@ -84,22 +83,6 @@ While exploring the graph, the user wants to see detailed information about node
 
 ---
 
-### User Story 5 - Export Visualization (Priority: P5)
-
-After exploring and potentially adjusting the graph, the user wants to save the current view as an image for documentation, presentations, or reports. They should be able to export exactly what they see in the viewport.
-
-**Why this priority**: Essential for knowledge sharing and documentation, but only valuable after graph is rendered and explored (depends on P1, P2). Lowest priority as core functionality works without it.
-
-**Independent Test**: Render and navigate to a specific view, click export, and verify the downloaded image matches the current viewport appearance.
-
-**Acceptance Scenarios**:
-
-1. **Given** a rendered graph at any zoom/pan level, **When** the user clicks "save as image" control, **Then** the browser downloads a PNG/SVG file showing only the visible viewport content at current zoom/pan (not the entire graph)
-2. **Given** a graph with manually repositioned nodes, **When** the user exports the image, **Then** the exported image reflects the current node positions and zoom level exactly as displayed in viewport
-3. **Given** a graph is exported, **When** the user opens the image file, **Then** the image has sufficient resolution for readable labels and maintains aspect ratio of the viewport
-
----
-
 ### Edge Cases
 
 - **Empty results**: What happens when a CONSTRUCT query returns zero triples? → Display empty state message "No graph data to visualize"
@@ -163,20 +146,15 @@ After exploring and potentially adjusting the graph, the user wants to save the 
 - **FR-025**: Plugin MUST display tooltip after 300ms hover delay over edges showing the full prefixed predicate URI
 - **FR-026**: Plugin MUST hide tooltips when cursor leaves element boundary (auto-hide on mouse leave)
 
-#### Export
-
-- **FR-027**: Plugin MUST provide "save as image" control that exports only the visible viewport content at current zoom/pan level as a downloadable image file
-- **FR-028**: Plugin MUST export image in PNG or SVG format with sufficient resolution for readable labels
-
 #### Edge Case Handling
 
-- **FR-029**: Plugin MUST display empty state message when CONSTRUCT query returns zero triples
-- **FR-030**: Plugin MUST handle self-referencing triples (subject equals object) by rendering loop edges
-- **FR-031**: Plugin MUST handle blank nodes by creating nodes with generated labels and yellow color
-- **FR-032**: Plugin MUST render multiple predicates between the same node pair as separate parallel edges with curved/offset paths
-- **FR-033**: Plugin MUST truncate very long URI labels with ellipsis while preserving full URI in tooltips
-- **FR-034**: Plugin MUST truncate literal labels exceeding ~50 characters while preserving full value in tooltips
-- **FR-035**: Plugin MUST de-duplicate identical triples (same subject, predicate, object) to avoid rendering duplicate edges
+- **FR-028**: Plugin MUST display empty state message when CONSTRUCT query returns zero triples
+- **FR-029**: Plugin MUST handle self-referencing triples (subject equals object) by rendering loop edges
+- **FR-030**: Plugin MUST handle blank nodes by creating nodes with generated labels and yellow color
+- **FR-031**: Plugin MUST render multiple predicates between the same node pair as separate parallel edges with curved/offset paths
+- **FR-032**: Plugin MUST truncate very long URI labels with ellipsis while preserving full URI in tooltips
+- **FR-033**: Plugin MUST truncate literal labels exceeding ~50 characters while preserving full value in tooltips
+- **FR-034**: Plugin MUST de-duplicate identical triples (same subject, predicate, object) to avoid rendering duplicate edges
 
 ### Key Entities
 
@@ -203,11 +181,10 @@ After exploring and potentially adjusting the graph, the user wants to save the 
 - **SC-001**: Users can visualize CONSTRUCT query results as graphs within 2 seconds of receiving results (for graphs up to 1,000 nodes)
 - **SC-002**: Users can identify node types (literal vs. blank node vs. URI vs. type instance) through color coding without reading labels (grey/yellow/blue/green)
 - **SC-003**: Users can navigate graphs of any size by zooming and panning without performance degradation
-- **SC-004**: Users can export publication-ready images of graph visualizations with readable labels
-- **SC-005**: Users can reorganize graph layouts manually to improve understanding of relationships
-- **SC-006**: Users can access full URI details for any node or edge via hover tooltips
-- **SC-007**: Plugin maintains responsive layout across all YASR container sizes (from 320px mobile to 4K desktop)
-- **SC-008**: Graph rendering completes successfully for 95% of valid CONSTRUCT query results without errors or empty states (excluding intentionally empty results)
+- **SC-004**: Users can reorganize graph layouts manually to improve understanding of relationships
+- **SC-005**: Users can access full URI details for any node or edge via hover tooltips
+- **SC-006**: Plugin maintains responsive layout across all YASR container sizes (from 320px mobile to 4K desktop)
+- **SC-007**: Graph rendering completes successfully for 95% of valid CONSTRUCT query results without errors or empty states (excluding intentionally empty results)
 
 ## Assumptions
 
@@ -218,4 +195,3 @@ After exploring and potentially adjusting the graph, the user wants to save the 
 - Modern browsers support Canvas or SVG rendering for graph visualization (covered by constitution's browser compatibility requirements)
 - Force-directed layout algorithms are acceptable for automatic node positioning (no specific layout algorithm mandated)
 - Graph visualizations do not require persistence - each query execution produces a fresh visualization
-- Export image resolution is suitable for screen viewing and standard print (no poster-size export required)

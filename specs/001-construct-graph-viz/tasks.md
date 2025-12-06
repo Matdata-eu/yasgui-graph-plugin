@@ -126,46 +126,27 @@
 
 ---
 
-## Phase 7: User Story 5 - Export Visualization (Priority: P5)
-
-**Goal**: Provide "save as image" control to export visible viewport content at current zoom/pan level as PNG file with readable labels
-
-**Independent Test**: Render and navigate to specific view, click export button, verify downloaded PNG matches current viewport exactly (not entire graph), image has sufficient resolution for readable labels
-
-### Implementation for User Story 5
-
-- [X] T043 [US5] Add "save as image" button to container in GraphPlugin.draw(): create button element next to "zoom to extents" button
-- [X] T044 [US5] Implement GraphPlugin.download(filename) method: get canvas element from this.network.canvas.frame.canvas
-- [X] T045 [US5] In GraphPlugin.download(), use canvas.toBlob() to export PNG of current viewport (not full graph), trigger browser download with filename
-- [X] T046 [US5] Wire "save as image" button onclick to call this.download('graph-export') in GraphPlugin.draw()
-- [X] T047 [US5] Style "save as image" button with CSS: position absolute top-right, left of "zoom to extents", consistent styling
-- [ ] T048 [US5] Test export in example/index.html: zoom/pan to specific view, export, verify PNG shows only visible viewport at current zoom level
-
-**Checkpoint**: User Story 5 complete - image export working for viewport content
-
----
-
-## Phase 8: Polish & Cross-Cutting Concerns
+## Phase 7: Polish & Cross-Cutting Concerns
 
 **Purpose**: Edge cases, error handling, performance optimization, and final documentation
 
-- [X] T049 [P] Handle empty results edge case: enhance GraphPlugin.draw() empty state message to match FR-029 "No graph data to visualize"
-- [X] T050 [P] Handle single triple edge case: verify graph renders two nodes with one edge centered in viewport
-- [X] T051 [P] Handle self-referencing triples: verify vis-network renders loop edges correctly (built-in support)
-- [X] T052 [P] Handle very long URIs: ensure truncateLabel() in prefixUtils.js truncates with ellipsis at 50 chars (already implemented in T009)
-- [X] T053 [P] Handle very long literals: ensure truncateLabel() in prefixUtils.js truncates with ellipsis at 50 chars (already implemented in T009)
-- [X] T054 [P] Handle duplicate triples deduplication: verify createEdgesArray() in transformers.js only creates one edge per unique subject-predicate-object (Map/Set based)
-- [X] T055 Add performance warning for large graphs: in GraphPlugin.draw(), if triples.length > 1000, log console warning about potential slowness
-- [X] T056 Handle browser resize: verify vis-network autoResize option handles window resize automatically (configured in T011)
-- [X] T057 Add CSS styling for plugin container in src/GraphPlugin.js: container height 600px or 100% of parent, overflow hidden, position relative
-- [X] T058 Create example/queries.js with sample CONSTRUCT queries: basic graph, ontology visualization, DBpedia example, large graph (100+ triples)
-- [X] T059 Create example/index.html with YASGUI instance, plugin registration, endpoint configuration, and query examples
-- [X] T060 Update README.md with installation instructions, usage examples, configuration options, and link to quickstart.md
-- [X] T061 Build dist/yasgui-graph-plugin.min.js using esbuild: run build script, verify UMD bundle, test global GraphPlugin export
-- [ ] T062 Manual browser testing in Chrome: execute all example queries, verify all 5 user stories work correctly
-- [ ] T063 Manual browser testing in Firefox: execute all example queries, verify all 5 user stories work correctly
-- [ ] T064 Manual browser testing in Safari: execute all example queries, verify all 5 user stories work correctly
-- [ ] T065 Manual browser testing in Edge: execute all example queries, verify all 5 user stories work correctly
+- [X] T043 [P] Handle empty results edge case: enhance GraphPlugin.draw() empty state message to match FR-029 "No graph data to visualize"
+- [X] T044 [P] Handle single triple edge case: verify graph renders two nodes with one edge centered in viewport
+- [X] T045 [P] Handle self-referencing triples: verify vis-network renders loop edges correctly (built-in support)
+- [X] T046 [P] Handle very long URIs: ensure truncateLabel() in prefixUtils.js truncates with ellipsis at 50 chars (already implemented in T009)
+- [X] T047 [P] Handle very long literals: ensure truncateLabel() in prefixUtils.js truncates with ellipsis at 50 chars (already implemented in T009)
+- [X] T048 [P] Handle duplicate triples deduplication: verify createEdgesArray() in transformers.js only creates one edge per unique subject-predicate-object (Map/Set based)
+- [X] T049 Add performance warning for large graphs: in GraphPlugin.draw(), if triples.length > 1000, log console warning about potential slowness
+- [X] T050 Handle browser resize: verify vis-network autoResize option handles window resize automatically (configured in T011)
+- [X] T051 Add CSS styling for plugin container in src/GraphPlugin.js: container height 600px or 100% of parent, overflow hidden, position relative
+- [X] T052 Create example/queries.js with sample CONSTRUCT queries: basic graph, ontology visualization, DBpedia example, large graph (100+ triples)
+- [X] T053 Create example/index.html with YASGUI instance, plugin registration, endpoint configuration, and query examples
+- [X] T054 Update README.md with installation instructions, usage examples, configuration options, and link to quickstart.md
+- [X] T055 Build dist/yasgui-graph-plugin.min.js using esbuild: run build script, verify UMD bundle, test global GraphPlugin export
+- [ ] T056 Manual browser testing in Chrome: execute all example queries, verify all 5 user stories work correctly
+- [ ] T057 Manual browser testing in Firefox: execute all example queries, verify all 5 user stories work correctly
+- [ ] T058 Manual browser testing in Safari: execute all example queries, verify all 5 user stories work correctly
+- [ ] T059 Manual browser testing in Edge: execute all example queries, verify all 5 user stories work correctly
 
 **Checkpoint**: All edge cases handled, performance optimized, manual testing complete across all browsers
 
@@ -191,7 +172,6 @@ This provides:
 - **v0.2.0**: Add Phase 4 (User Story 2 - Navigation) for zoom/pan controls
 - **v0.3.0**: Add Phase 5 (User Story 3 - Reorganize) for node dragging
 - **v0.4.0**: Add Phase 6 (User Story 4 - Tooltips) for detail inspection
-- **v0.5.0**: Add Phase 7 (User Story 5 - Export) for image export
 - **v1.0.0**: Complete Phase 8 (Polish) for production readiness
 
 ### Parallel Execution Opportunities
@@ -242,12 +222,10 @@ Phase 5 (US3: Reorganize) ← Depends on US1 (need nodes to drag)
     ↓
 Phase 6 (US4: Tooltips) ← Depends on US1 (need elements to hover)
     ↓
-Phase 7 (US5: Export) ← Depends on US1, US2 (need viewport to export)
-    ↓
-Phase 8 (Polish) ← Final integration and testing
+Phase 7 (Polish) ← Final integration and testing
 ```
 
-**Critical Path**: T001 → T007-T015 (foundational) → T016-T028 (US1) → T029-T048 (US2-US5) → T049-T065 (polish)
+**Critical Path**: T001 → T007-T015 (foundational) → T016-T028 (US1) → T029-T042 (US2-US5) → T043-T059 (polish)
 
 **No circular dependencies**: Each user story builds on US1 but stories are otherwise independent
 
@@ -262,8 +240,7 @@ Phase 8 (Polish) ← Final integration and testing
 - **Phase 4 (US2 - Navigate)**: 6 tasks
 - **Phase 5 (US3 - Reorganize)**: 4 tasks
 - **Phase 6 (US4 - Tooltips)**: 4 tasks
-- **Phase 7 (US5 - Export)**: 6 tasks
-- **Phase 8 (Polish)**: 17 tasks
+- **Phase 7 (Polish)**: 17 tasks
 
 **Parallel Opportunities**: 22 tasks marked [P] can run in parallel (34% of total)
 
@@ -272,7 +249,6 @@ Phase 8 (Polish) ← Final integration and testing
 - US2: Zoom/pan/fit controls work smoothly on any graph
 - US3: Drag nodes, positions persist during navigation
 - US4: Hover shows tooltips after 300ms with full details
-- US5: Export button downloads PNG of visible viewport
 
 **Format Validation**: ✅ All tasks follow checklist format `- [ ] [ID] [P?] [Story?] Description with file path`
 

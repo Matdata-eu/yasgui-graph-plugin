@@ -213,17 +213,18 @@ Contributions welcome! Please follow the project constitution (`.specify/memory/
 ## 🐛 Troubleshooting
 
 ### Plugin tab not showing
-- Ensure query type is **CONSTRUCT** (not SELECT/ASK/DESCRIBE)
+- Verify plugin is registered correctly
 - Check browser console for errors
 - Verify YASGUI version is ^4.0.0
 
 ### Empty visualization
-- Confirm CONSTRUCT query returns triples (check "Table" or "Response" tab)
-- Verify results have subject/predicate/object structure
+- Ensure query type is **CONSTRUCT** or **DESCRIBE**
+- Confirm query returns triples (check "Table" or "Response" tab)
+- Verify results have RDF structure
 
 ### Performance issues
 - Limit results to <1000 nodes for best performance
-- Disable physics after initial layout (automatic)
+- Disable physics after initial layout
 - Consider using LIMIT clause in SPARQL query
 
 For more help, see [Quickstart Guide - Troubleshooting](./specs/001-construct-graph-viz/quickstart.md#troubleshooting).

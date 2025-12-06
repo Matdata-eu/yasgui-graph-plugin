@@ -97,10 +97,6 @@ LIMIT 100
    - **Drag nodes**: Click and drag individual nodes
    - **Inspect**: Hover over nodes/edges to see tooltips
 
-### 3. Export Graph
-
-Click the download button (💾) in the YASR toolbar to export the graph as a PNG image.
-
 ## Example Queries
 
 ### Basic Graph (Entities and Relationships)
@@ -231,7 +227,7 @@ console.log(yasgui.getTab().yasr.results.getBindings());
 
 **Solution**:
 1. Limit query results (use `LIMIT 100` or `LIMIT 1000`)
-2. Wait for layout stabilization (physics disables automatically)
+2. Wait for layout stabilization
 3. If still slow, manually disable physics:
    ```javascript
    // In browser console
@@ -309,7 +305,6 @@ See detailed contracts:
 
 - **Issues**: https://github.com/Matdata-eu/yasgui-graph-plugin/issues
 - **Discussions**: https://github.com/Matdata-eu/yasgui-graph-plugin/discussions
-- **Email**: support@matdata.eu
 
 ## License
 
