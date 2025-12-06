@@ -39,7 +39,7 @@
 - [X] T010 [P] Implement getNodeColor(node, triples) in src/colorUtils.js to determine color: #FFFF00 (blank nodes), #808080 (literals), #00FF00 (rdf:type objects), #0000FF (other URIs)
 - [X] T011 [P] Implement getDefaultNetworkOptions() in src/networkConfig.js returning vis-network config: physics enabled with 200 max iterations, interactions (drag/zoom/pan/hover), autoResize, 100% width/height
 - [X] T012 Create GraphPlugin class skeleton in src/GraphPlugin.js with constructor(yasr), priority=20, label='Graph', and placeholder methods: canHandleResults(), draw(), getIcon()
-- [X] T013 Implement GraphPlugin.canHandleResults() to detect CONSTRUCT results by checking for subject/predicate/object variables in this.yasr.results
+- [X] T013 Implement GraphPlugin.canHandleResults() to detect CONSTRUCT and DESCRIBE results by checking for subject/predicate/object variables in this.yasr.results
 - [X] T014 Implement GraphPlugin.getIcon() to return Font Awesome icon element (fa-project-diagram) for YASR tab
 - [X] T015 Export GraphPlugin and auto-register with Yasgui.Yasr.registerPlugin('graph', GraphPlugin) in src/index.js (UMD compatibility)
 

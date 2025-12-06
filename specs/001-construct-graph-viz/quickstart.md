@@ -66,7 +66,7 @@ const yasgui = new Yasgui(document.getElementById('yasgui'), {
 
 ## Basic Usage
 
-### 1. Execute CONSTRUCT Query
+### 1. Execute CONSTRUCT or DESCRIBE Query
 
 The plugin automatically activates for SPARQL CONSTRUCT queries that return triples:
 

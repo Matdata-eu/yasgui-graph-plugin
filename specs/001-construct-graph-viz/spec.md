@@ -3,7 +3,7 @@
 **Feature Branch**: `001-construct-graph-viz`  
 **Created**: 2025-12-05  
 **Status**: Draft  
-**Input**: User description: "Visualize SPARQL CONSTRUCT query results as interactive graphs with nodes (subjects/objects) and edges (predicates), supporting zoom, drag, tooltips and color coding"
+**Input**: User description: "Visualize SPARQL CONSTRUCT and DESCRIBE query results as interactive graphs with nodes (subjects/objects) and edges (predicates), supporting zoom, drag, tooltips and color coding"
 
 ## Clarifications
 
@@ -105,7 +105,7 @@ While exploring the graph, the user wants to see detailed information about node
 
 #### Data Parsing & Graph Construction
 
-- **FR-001**: Plugin MUST detect when YASR receives CONSTRUCT query results (as opposed to SELECT/ASK/DESCRIBE)
+- **FR-001**: Plugin MUST detect when YASR receives CONSTRUCT or DESCRIBE query results (as opposed to SELECT/ASK)
 - **FR-002**: Plugin MUST parse RDF triples from SPARQL results and extract subject, predicate, object for each triple
 - **FR-003**: Plugin MUST create graph nodes for all unique subjects and objects appearing in triples
 - **FR-004**: Plugin MUST create graph edges for predicates connecting subject nodes to object nodes

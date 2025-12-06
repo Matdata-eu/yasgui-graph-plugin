@@ -2,7 +2,7 @@
   "name": "@matdata/yasgui-graph-plugin",
   "private": false,
   "version": "0.1.0",
-  "description": "YASGUI plugin for visualizing SPARQL CONSTRUCT query results as interactive graphs",
+  "description": "YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as interactive graphs",
   "main": "dist/yasgui-graph-plugin.min.js",
   "scripts": {
     "dev": "vite",

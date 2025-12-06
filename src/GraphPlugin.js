@@ -37,7 +37,7 @@ class GraphPlugin {
 
   /**
    * Check if plugin can handle the current results
-   * @returns {boolean} True if results are from CONSTRUCT query
+   * @returns {boolean} True if results are from CONSTRUCT or DESCRIBE query
    */
   canHandleResults() {
     if (!this.yasr || !this.yasr.results) return false;
@@ -49,7 +49,7 @@ class GraphPlugin {
       const bindings = results.getBindings();
       if (bindings && bindings.length > 0) {
         const firstBinding = bindings[0];
-        // CONSTRUCT results have subject, predicate, object variables
+        // CONSTRUCT and DESCRIBE results have subject, predicate, object variables
         return (
           firstBinding.subject !== undefined &&
           firstBinding.predicate !== undefined &&

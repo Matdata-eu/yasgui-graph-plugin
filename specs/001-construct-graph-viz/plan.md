@@ -7,7 +7,7 @@
 
 ## Summary
 
-**Primary Requirement**: Create a YASGUI plugin that visualizes SPARQL CONSTRUCT query results as interactive graphs with nodes (subjects/objects) and edges (predicates), supporting zoom, drag, tooltips and color coding by node type.
+**Primary Requirement**: Create a YASGUI plugin that visualizes SPARQL CONSTRUCT and DESCRIBE query results as interactive graphs with nodes (subjects/objects) and edges (predicates), supporting zoom, drag, tooltips and color coding by node type.
 
 **Technical Approach**: Implement a YASR plugin class following the yasgui-geo pattern (constructor, canHandleResults, draw, getIcon methods) using vis-network v9.x for graph rendering. Parse RDF triples from bindings format, transform to vis-network DataSets with color-coded nodes (grey literals, green rdf:type objects, blue other URIs), apply prefix abbreviation, and leverage vis-network's built-in force-directed layout and interaction. Build with esbuild to UMD format for `Yasgui.Yasr.registerPlugin()` registration.
 

@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![npm version](https://img.shields.io/npm/v/yasgui-graph-plugin.svg)](https://www.npmjs.com/package/yasgui-graph-plugin)
 
-A YASGUI plugin for visualizing SPARQL CONSTRUCT query results as interactive graphs with nodes (subjects/objects) and edges (predicates).
+A YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as interactive graphs with nodes (subjects/objects) and edges (predicates).
 
 ## ✨ Features
 
@@ -66,8 +66,9 @@ const yasgui = new Yasgui(document.getElementById('yasgui'), {
 });
 ```
 
-### Sample CONSTRUCT Query
+### Sample Queries
 
+**CONSTRUCT Query:**
 ```sparql
 PREFIX ex: <http://example.org/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -80,6 +81,14 @@ CONSTRUCT {
   ex:Bob ex:name "Bob" .
 }
 WHERE {}
+```
+
+**DESCRIBE Query:**
+```sparql
+PREFIX ex: <http://example.org/>
+
+# Returns all triples about the specified resources
+DESCRIBE ex:Alice ex:Bob
 ```
 
 After running the query, click the **"Graph"** tab to see the visualization.
