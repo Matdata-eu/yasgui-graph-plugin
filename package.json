@@ -1,5 +1,6 @@
 {
-  "name": "yasgui-graph-plugin",
+  "name": "@matdata/yasgui-graph-plugin",
+  "private": false,
   "version": "0.1.0",
   "description": "YASGUI plugin for visualizing SPARQL CONSTRUCT query results as interactive graphs",
   "main": "dist/yasgui-graph-plugin.min.js",
@@ -22,6 +23,9 @@
     "url": "https://github.com/Matdata-eu/yasgui-graph-plugin/issues"
   },
   "homepage": "https://github.com/Matdata-eu/yasgui-graph-plugin#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "vis-network": "^9.1.9"
   },

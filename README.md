@@ -16,7 +16,6 @@ A YASGUI plugin for visualizing SPARQL CONSTRUCT query results as interactive gr
 - **🔍 Navigation**: Mouse wheel zoom, drag to pan, "Zoom to Fit" button
 - **✋ Drag & Drop**: Reorganize nodes by dragging them to new positions
 - **💬 Tooltips**: Hover for full URI/literal details (300ms delay)
-- **📸 Export**: Save current viewport as PNG image
 - **⚡ Performance**: Handles up to 1,000 nodes with <2s render time
 - **♿ Accessible**: WCAG AA color contrast, keyboard navigation support
 
@@ -32,7 +31,7 @@ npm install yasgui-graph-plugin @zazuko/yasgui vis-network
 import Yasgui from '@zazuko/yasgui';
 import GraphPlugin from 'yasgui-graph-plugin';
 
-Yasgui.Yasr.registerPlugin('graph', GraphPlugin);
+Yasgui.Yasr.registerPlugin('Graph', GraphPlugin);
 
 const yasgui = new Yasgui(document.getElementById('yasgui'));
 ```
@@ -95,7 +94,6 @@ After running the query, click the **"Graph"** tab to see the visualization.
 ### Interaction
 - **Drag Nodes**: Click and drag any node to reposition it
 - **Tooltips**: Hover over nodes/edges for 300ms to see full details
-- **Export**: Click "Export PNG" to download the current viewport as an image
 
 ### Understanding Colors
 
@@ -200,7 +198,6 @@ Contributions welcome! Please follow the project constitution (`.specify/memory/
 **Implemented Features** (v0.1.0):
 - ✅ Basic graph visualization (US1)
 - ✅ Navigation controls (US2)
-- ✅ Export to PNG (US5)
 - ✅ Color-coded nodes
 - ✅ Prefix abbreviation
 - ✅ Blank node support
