@@ -1,20 +1,23 @@
 /**
- * Extract namespace prefixes from SPARQL results metadata
+ * Extract namespace prefixes from SPARQL results metadata or YASR instance
  * @param {Object} yasrResults - YASR results object
+ * @param {Object} yasr - YASR instance (optional)
  * @returns {Map<string, string>} Map of namespace URI to prefix
  */
-function extractPrefixes(yasrResults) {
+function extractPrefixes(yasr) {
   const prefixMap = new Map();
   
-  // Check for prefixes in results metadata
-  if (yasrResults && yasrResults.getVariables) {
-    const vars = yasrResults.getVariables();
-    if (vars && vars.prefixes) {
-      Object.entries(vars.prefixes).forEach(([prefix, uri]) => {
-        prefixMap.set(uri, prefix);
+  // Try to get prefixes from YASR instance
+  if (yasr && yasr.getPrefixes) {
+    const prefixes = yasr.getPrefixes();
+    if (prefixes && typeof prefixes === 'object') {
+      Object.entries(prefixes).forEach(([prefix, uri]) => {
+        if (uri && prefix) {
+          prefixMap.set(uri, prefix);
+        }
       });
     }
-  }
+  }  
   
   // Add common RDF prefixes as fallback
   const commonPrefixes = {

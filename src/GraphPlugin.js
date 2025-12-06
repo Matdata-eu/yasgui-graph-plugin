@@ -75,8 +75,8 @@ class GraphPlugin {
         return;
       }
       
-      // Extract prefixes
-      const prefixMap = extractPrefixes(this.yasr.results);
+      // Extract prefixes (pass both results and yasr instance)
+      const prefixMap = extractPrefixes(this.yasr);
       
       // Transform triples to graph data
       const { nodes, edges } = triplesToGraph(triples, prefixMap);
