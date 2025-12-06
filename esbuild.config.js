@@ -54,27 +54,21 @@ const typeDeclaration = `// Type definitions for @matdata/yasgui-graph-plugin
 // Project: https://github.com/Matdata-eu/yasgui-graph-plugin
 
 declare module '@matdata/yasgui-graph-plugin' {
-  import type { default as Yasr } from '@zazuko/yasgui/build/ts/yasr';
+  import type { Plugin } from '@zazuko/yasgui/build/ts/plugins';
 
   /**
    * YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as interactive graphs
    */
-  export default class GraphPlugin {
-    /**
-     * Creates a new GraphPlugin instance
-     * @param yasr - The YASR instance
-     */
-    constructor(yasr: typeof Yasr);
-
+  export default class GraphPlugin extends Plugin {
     /**
      * Plugin priority (higher = shown first in tabs)
      */
-    static get priority(): number;
+    static priority: number;
 
     /**
      * Plugin label for tab display
      */
-    static get label(): string;
+    static label: string;
 
     /**
      * Check if plugin can handle the current results
