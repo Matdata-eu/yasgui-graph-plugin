@@ -50,65 +50,7 @@ const builds = [
 ];
 
 // TypeScript declaration content
-const typeDeclaration = `// Type definitions for @matdata/yasgui-graph-plugin
-// Project: https://github.com/Matdata-eu/yasgui-graph-plugin
-
-declare module '@matdata/yasgui-graph-plugin' {
-  import type { Plugin, DownloadInfo } from '@zazuko/yasr/build/ts/plugins';
-  import type Yasr from '@zazuko/yasr';
-
-  /**
-   * YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as interactive graphs
-   */
-  export default class GraphPlugin implements Plugin<any> {
-    /**
-     * Plugin priority (higher = shown first in tabs)
-     */
-    priority: number;
-
-    /**
-     * Plugin label for tab display
-     */
-    label?: string;
-
-    /**
-     * Reference to help documentation
-     */
-    helpReference?: string;
-
-    /**
-     * Check if plugin can handle the current results
-     * @returns True if results are from CONSTRUCT or DESCRIBE query
-     */
-    canHandleResults(): boolean;
-
-    /**
-     * Render the graph visualization
-     */
-    draw(persistentConfig: any, runtimeConfig?: any): Promise<void> | void;
-
-    /**
-     * Get icon element for plugin tab
-     */
-    getIcon(): Element | undefined;
-
-    /**
-     * Download the current visualization as PNG
-     */
-    download(filename?: string): DownloadInfo | undefined;
-
-    /**
-     * Cleanup resources when plugin is destroyed
-     */
-    destroy?(): void;
-
-    /**
-     * Get vis-network configuration options
-     * @returns Network options for vis-network
-     */
-    getNetworkOptions(): any;
-  }
-}
+const typeDeclaration = `declare module '@matdata/yasgui-graph-plugin';
 `;
 
 // Build all formats

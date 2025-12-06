@@ -26,7 +26,6 @@
   "keywords": ["yasgui", "sparql", "rdf", "graph", "visualization"],
   "author": "Matdata",
   "license": "Apache-2.0",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/Matdata-eu/yasgui-graph-plugin/issues"
   },
