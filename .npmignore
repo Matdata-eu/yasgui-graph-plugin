@@ -1,14 +1,21 @@
-# Demo files
+# Development and demo files
 demo/
-
-# Development files
+example/
 .vscode/
+.specify/
+specs/
 *.sparql
 
-# Build output
-dist/
+# Source files (publish only dist/)
+src/
+esbuild.config.js
+.eslintrc.js
+.prettierrc
+
+# Dependencies
 node_modules/
 
-# Git files
+# Git and config files
 .git/
 .gitignore
+.github/

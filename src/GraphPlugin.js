@@ -1,0 +1,173 @@
+import { extractPrefixes } from './prefixUtils.js';
+import { getDefaultNetworkOptions } from './networkConfig.js';
+import { parseConstructResults } from './parsers.js';
+import { triplesToGraph } from './transformers.js';
+
+// Get vis-network (from global in dev mode, or bundled in production)
+function getVisNetwork() {
+  if (typeof window !== 'undefined' && window.vis) {
+    return window.vis;
+  }
+  // In production build, this will be bundled
+  throw new Error('vis-network not found. Load vis-network before GraphPlugin in dev mode.');
+}
+
+/**
+ * YASR plugin for visualizing SPARQL CONSTRUCT results as graphs
+ */
+class GraphPlugin {
+  constructor(yasr) {
+    this.yasr = yasr;
+    this.network = null;
+  }
+
+  /**
+   * Plugin priority (higher = shown first in tabs)
+   */
+  static get priority() {
+    return 20;
+  }
+
+  /**
+   * Plugin label for tab display
+   */
+  static get label() {
+    return 'Graph';
+  }
+
+  /**
+   * Check if plugin can handle the current results
+   * @returns {boolean} True if results are from CONSTRUCT query
+   */
+  canHandleResults() {
+    if (!this.yasr || !this.yasr.results) return false;
+
+    const results = this.yasr.results;
+    
+    // Check if results have RDF triple structure (subject/predicate/object)
+    if (results.getBindings && typeof results.getBindings === 'function') {
+      const bindings = results.getBindings();
+      if (bindings && bindings.length > 0) {
+        const firstBinding = bindings[0];
+        // CONSTRUCT results have subject, predicate, object variables
+        return (
+          firstBinding.subject !== undefined &&
+          firstBinding.predicate !== undefined &&
+          firstBinding.object !== undefined
+        );
+      }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Render the graph visualization
+   */
+  draw() {
+    // Clear previous content
+    this.yasr.resultsEl.innerHTML = '';
+    
+    try {
+      // Parse RDF triples from results
+      const triples = parseConstructResults(this.yasr.results);
+      
+      // Handle empty results
+      if (!triples || triples.length === 0) {
+        this.yasr.resultsEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No graph data to visualize</div>';
+        return;
+      }
+      
+      // Extract prefixes
+      const prefixMap = extractPrefixes(this.yasr.results);
+      
+      // Transform triples to graph data
+      const { nodes, edges } = triplesToGraph(triples, prefixMap);
+      
+      // Create container
+      const container = document.createElement('div');
+      container.style.width = '100%';
+      container.style.height = '600px';
+      container.style.position = 'relative';
+      container.style.overflow = 'hidden';
+      this.yasr.resultsEl.appendChild(container);
+      
+      // Get vis-network classes
+      const { Network, DataSet } = getVisNetwork();
+      
+      // Create vis-network DataSets
+      const nodesDataSet = new DataSet(nodes);
+      const edgesDataSet = new DataSet(edges);
+      
+      // Initialize network
+      const options = getDefaultNetworkOptions();
+      this.network = new Network(
+        container,
+        { nodes: nodesDataSet, edges: edgesDataSet },
+        options
+      );
+      
+      // Track network readiness
+      this.networkReady = false;
+      
+      // Disable physics after stabilization (performance optimization)
+      this.network.on('stabilizationIterationsDone', () => {
+        this.network.setOptions({ physics: { enabled: true } });
+        this.networkReady = true;
+      });
+      
+      // Add controls container AFTER network is created
+      const controls = document.createElement('div');
+      controls.style.position = 'absolute';
+      controls.style.top = '10px';
+      controls.style.right = '10px';
+      controls.style.zIndex = '10000';
+      controls.style.display = 'flex';
+      controls.style.gap = '10px';
+      controls.style.pointerEvents = 'auto';
+      container.appendChild(controls);
+      
+      // Add "Zoom to Fit" button
+      const fitButton = document.createElement('button');
+      fitButton.textContent = 'Zoom to Fit';
+      fitButton.style.padding = '8px 12px';
+      fitButton.style.background = '#4CAF50';
+      fitButton.style.color = 'white';
+      fitButton.style.border = 'none';
+      fitButton.style.borderRadius = '4px';
+      fitButton.style.cursor = 'pointer';
+      fitButton.style.fontSize = '14px';
+      fitButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+      fitButton.onmouseover = () => fitButton.style.background = '#45a049';
+      fitButton.onmouseout = () => fitButton.style.background = '#4CAF50';
+      fitButton.onclick = () => {
+        if (this.network) {
+          this.network.fit({ animation: { duration: 300, easingFunction: 'easeInOutQuad' } });
+        }
+      };
+      controls.appendChild(fitButton);
+      
+      // Add performance warning for large graphs
+      if (triples.length > 1000) {
+        console.warn('Large graph detected (>1000 triples). Rendering may be slow.');
+      }
+      
+    } catch (error) {
+      console.error('Error rendering graph:', error);
+      this.yasr.resultsEl.innerHTML = '<div style="padding: 20px; color: red;">Error rendering graph. See console for details.</div>';
+    }
+  }
+
+  /**
+   * Get icon for plugin tab
+   * @returns {Element} Icon element
+   */
+  getIcon() {
+    const icon = document.createElement('span');
+    icon.className = 'fas fa-project-diagram';
+    icon.setAttribute('aria-label', 'Graph visualization');
+    return icon;
+  }
+}
+
+export default GraphPlugin;
