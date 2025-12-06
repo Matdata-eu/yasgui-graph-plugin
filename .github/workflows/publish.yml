@@ -36,5 +36,19 @@ jobs:
           TAG_VERSION=${TAG_VERSION#v}
           npm version $TAG_VERSION --no-git-tag-version --allow-same-version
 
+      - name: Check if version already published
+        id: check
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "$PACKAGE_NAME@$VERSION" version 2>/dev/null; then
+            echo "Version $VERSION already published, skipping"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "Version $VERSION not published yet"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Publish to npm
+        if: steps.check.outputs.skip != 'true'
         run: npm publish --provenance --access public

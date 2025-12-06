@@ -1,4 +1,6 @@
 const esbuild = require('esbuild');
+const fs = require('fs');
+const path = require('path');
 
 // Build configurations for different module formats
 const builds = [
@@ -47,13 +49,73 @@ const builds = [
   },
 ];
 
+// TypeScript declaration content
+const typeDeclaration = `// Type definitions for @matdata/yasgui-graph-plugin
+// Project: https://github.com/Matdata-eu/yasgui-graph-plugin
+
+declare module '@matdata/yasgui-graph-plugin' {
+  import type { default as Yasr } from '@zazuko/yasgui/build/ts/yasr';
+
+  /**
+   * YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as interactive graphs
+   */
+  export default class GraphPlugin {
+    /**
+     * Creates a new GraphPlugin instance
+     * @param yasr - The YASR instance
+     */
+    constructor(yasr: typeof Yasr);
+
+    /**
+     * Plugin priority (higher = shown first in tabs)
+     */
+    static get priority(): number;
+
+    /**
+     * Plugin label for tab display
+     */
+    static get label(): string;
+
+    /**
+     * Check if plugin can handle the current results
+     * @returns True if results are from CONSTRUCT or DESCRIBE query
+     */
+    canHandleResults(): boolean;
+
+    /**
+     * Render the graph visualization
+     */
+    draw(): void;
+
+    /**
+     * Download the current visualization as PNG
+     */
+    download(): void;
+
+    /**
+     * Get vis-network configuration options
+     * @returns Network options for vis-network
+     */
+    getNetworkOptions(): any;
+  }
+}
+`;
+
 // Build all formats
 Promise.all(builds.map(config => esbuild.build(config)))
   .then(() => {
+    // Create TypeScript declaration file
+    const distDir = path.join(__dirname, 'dist');
+    if (!fs.existsSync(distDir)) {
+      fs.mkdirSync(distDir, { recursive: true });
+    }
+    fs.writeFileSync(path.join(distDir, 'index.d.ts'), typeDeclaration);
+    
     console.log('✅ Build complete:');
     console.log('   - dist/yasgui-graph-plugin.esm.js (ES Module for bundlers)');
     console.log('   - dist/yasgui-graph-plugin.cjs.js (CommonJS for Node.js)');
     console.log('   - dist/yasgui-graph-plugin.min.js (IIFE for browsers/unpkg)');
+    console.log('   - dist/index.d.ts (TypeScript declarations)');
   })
   .catch((err) => {
     console.error('❌ Build failed:', err);

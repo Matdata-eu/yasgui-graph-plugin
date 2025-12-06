@@ -6,6 +6,7 @@
   "main": "dist/yasgui-graph-plugin.cjs.js",
   "module": "dist/yasgui-graph-plugin.esm.js",
   "unpkg": "dist/yasgui-graph-plugin.min.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist",
     "README.md",
