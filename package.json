@@ -3,7 +3,9 @@
   "private": false,
   "version": "0.1.0",
   "description": "YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as interactive graphs",
-  "main": "dist/yasgui-graph-plugin.min.js",
+  "main": "dist/yasgui-graph-plugin.cjs.js",
+  "module": "dist/yasgui-graph-plugin.esm.js",
+  "unpkg": "dist/yasgui-graph-plugin.min.js",
   "files": [
     "dist",
     "README.md",
