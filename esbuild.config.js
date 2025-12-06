@@ -13,7 +13,7 @@ const builds = [
     target: ['es2018'],
     format: 'esm',
     outfile: 'dist/yasgui-graph-plugin.esm.js',
-    external: ['vis-network'], // Don't bundle vis-network for ESM
+    external: [], // Bundle vis-network
     loader: {
       '.js': 'js',
     },
@@ -27,7 +27,7 @@ const builds = [
     target: ['es2018'],
     format: 'cjs',
     outfile: 'dist/yasgui-graph-plugin.cjs.js',
-    external: ['vis-network'], // Don't bundle vis-network for CJS
+    external: [], // Bundle vis-network
     loader: {
       '.js': 'js',
     },

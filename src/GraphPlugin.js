@@ -2,14 +2,11 @@ import { extractPrefixes } from './prefixUtils.js';
 import { getDefaultNetworkOptions } from './networkConfig.js';
 import { parseConstructResults } from './parsers.js';
 import { triplesToGraph } from './transformers.js';
+import { Network, DataSet } from 'vis-network/standalone';
 
-// Get vis-network (from global in dev mode, or bundled in production)
+// Get vis-network classes
 function getVisNetwork() {
-  if (typeof window !== 'undefined' && window.vis) {
-    return window.vis;
-  }
-  // In production build, this will be bundled
-  throw new Error('vis-network not found. Load vis-network before GraphPlugin in dev mode.');
+  return { Network, DataSet };
 }
 
 /**
