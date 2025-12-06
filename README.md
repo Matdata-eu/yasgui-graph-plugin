@@ -1,7 +1,7 @@
 # YASGUI Graph Plugin
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![npm version](https://img.shields.io/npm/v/yasgui-graph-plugin.svg)](https://www.npmjs.com/package/yasgui-graph-plugin)
+[![npm version](https://img.shields.io/npm/v/@matdata/yasgui-graph-plugin.svg)](https://www.npmjs.com/package/@matdata/yasgui-graph-plugin)
 
 A YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as interactive graphs with nodes (subjects/objects) and edges (predicates).
 
@@ -24,12 +24,12 @@ A YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as i
 ### NPM
 
 ```bash
-npm install yasgui-graph-plugin @zazuko/yasgui vis-network
+npm install @matdata/yasgui-graph-plugin @zazuko/yasgui vis-network
 ```
 
 ```javascript
 import Yasgui from '@zazuko/yasgui';
-import GraphPlugin from 'yasgui-graph-plugin';
+import GraphPlugin from '@matdata/yasgui-graph-plugin';
 
 Yasgui.Yasr.registerPlugin('Graph', GraphPlugin);
 
@@ -44,7 +44,7 @@ const yasgui = new Yasgui(document.getElementById('yasgui'));
 <script src="https://cdn.jsdelivr.net/npm/@zazuko/yasgui@4/build/yasgui.min.js"></script>
 
 <!-- Graph Plugin -->
-<script src="https://cdn.jsdelivr.net/npm/yasgui-graph-plugin/dist/yasgui-graph-plugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@matdata/yasgui-graph-plugin/dist/yasgui-graph-plugin.min.js"></script>
 
 <script>
   // Plugin auto-registers as 'graph'
