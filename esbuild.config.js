@@ -13,7 +13,7 @@ const config = {
   external: [],
   // Resolve ES module extensions
   loader: {
-    '.js': 'jsx',
+    '.js': 'js',
   },
 };
 
