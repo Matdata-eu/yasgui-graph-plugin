@@ -5,17 +5,17 @@
  * @returns {string} Hex color code
  */
 function getNodeColor(node, triples) {
-  // Blank nodes: yellow
+  // Blank nodes: light grey
   if (node.uri && node.uri.startsWith('_:')) {
-    return '#e15b13ff';
-  }
-  
-  // Literals: grey
-  if (node.type === 'literal') {
     return '#c5c5c5ff';
   }
   
-  // Check if node is object of rdf:type predicate: green
+  // Literals: light green
+  if (node.type === 'literal') {
+    return '#a6c8a6ff';
+  }
+  
+  // Check if node is object of rdf:type predicate: orange
   const isTypeObject = triples.some(
     (triple) =>
       triple.predicate === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' &&
@@ -23,10 +23,10 @@ function getNodeColor(node, triples) {
   );
   
   if (isTypeObject) {
-    return '#a6c8a6ff';
+    return '#e15b13ff';
   }
   
-  // Other URIs: blue
+  // Other URIs: light blue
   return '#97C2FC';
 }
 

@@ -10,9 +10,9 @@ A YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as i
 - **🔷 Interactive Graph Visualization**: Automatic force-directed layout with smooth physics-based positioning
 - **🎨 Smart Color Coding**: 
   - 🔵 Light Blue (#97C2FC) = URIs
-  - 🟢 Light Green (#a6c8a6ff) = rdf:type objects (classes)
-  - ⚪ Light Grey (#c5c5c5ff) = Literals
-  - 🟠 Orange (#e15b13ff) = Blank nodes
+  - 🟢 Light Green (#a6c8a6ff) = Literals
+  - ⚪ Light Grey (#c5c5c5ff) = Blank nodes
+  - 🟠 Orange (#e15b13ff) = rdf:type objects (classes)
 - **🔍 Navigation**: Mouse wheel zoom, drag to pan, "Zoom to Fit" button
 - **✋ Drag & Drop**: Reorganize nodes by dragging them to new positions
 - **💬 Tooltips**: Hover for full URI/literal details (300ms delay)
@@ -107,11 +107,11 @@ After running the query, click the **"Graph"** tab to see the visualization.
 ### Understanding Colors
 
 | Color | Meaning | Example |
-|-------|---------|---------|
+|-------|---------|---------||
 | 🔵 Light Blue (#97C2FC) | URI nodes | `ex:Person`, `ex:Alice` |
-| 🟢 Light Green (#a6c8a6ff) | rdf:type objects (classes) | `ex:Person` in `ex:Alice rdf:type ex:Person` |
-| ⚪ Light Grey (#c5c5c5ff) | Literal values | `"Alice"`, `"30"^^xsd:integer` |
-| 🟠 Orange (#e15b13ff) | Blank nodes | `_:b1`, `_:addr1` |
+| 🟢 Light Green (#a6c8a6ff) | Literal values | `"Alice"`, `"30"^^xsd:integer` |
+| ⚪ Light Grey (#c5c5c5ff) | Blank nodes | `_:b1`, `_:addr1` |
+| 🟠 Orange (#e15b13ff) | rdf:type objects (classes) | `ex:Person` in `ex:Alice rdf:type ex:Person` |
 
 ## ⚙️ Configuration
 

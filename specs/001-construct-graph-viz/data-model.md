@@ -14,7 +14,7 @@ Represents a unique subject or object from RDF triples in the visualization.
 - `id` (Number): Unique numeric identifier for vis-network (auto-incremented)
 - `uri` (String | null): Full URI for URI nodes, null for literals
 - `label` (String): Display text (prefixed URI or literal value, truncated if needed)
-- `color` (String): Hex color code - `#c5c5c5ff` (light grey, literals), `#a6c8a6ff` (light green, rdf:type objects), `#97C2FC` (light blue, other URIs), `#e15b13ff` (orange, blank nodes)
+- `color` (String): Hex color code - `#a6c8a6ff` (light green, literals), `#e15b13ff` (orange, rdf:type objects), `#97C2FC` (light blue, other URIs), `#c5c5c5ff` (light grey, blank nodes)
 - `type` (Enum): `'uri'` or `'literal'`
 - `fullValue` (String): Un-truncated value for tooltip display
 
@@ -33,7 +33,7 @@ Represents a unique subject or object from RDF triples in the visualization.
   id: 1,
   uri: 'http://example.org/Person',
   label: 'ex:Person',
-  color: '#a6c8a6ff', // Light green if object of rdf:type
+  color: '#e15b13ff', // Orange if object of rdf:type
   type: 'uri',
   fullValue: 'http://example.org/Person'
 }
@@ -42,7 +42,7 @@ Represents a unique subject or object from RDF triples in the visualization.
   id: 2,
   uri: null,
   label: 'John',
-  color: '#c5c5c5ff', // Light grey for literals
+  color: '#a6c8a6ff', // Light green for literals
   type: 'literal',
   fullValue: '"John"^^xsd:string'
 }
