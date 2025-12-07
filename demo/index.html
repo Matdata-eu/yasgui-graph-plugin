@@ -158,7 +158,7 @@
       try {
         const { default: GraphPlugin } = await import('../src/GraphPlugin.js');
         if (window.Yasgui && window.Yasgui.Yasr) {
-          window.Yasgui.Yasr.registerPlugin('Graph', GraphPlugin);
+          window.Yasgui.Yasr.registerPlugin('Graph-Dev', GraphPlugin);
           pluginLoaded = true;
           console.log('✅ Graph Plugin loaded from source (dev mode)');
         }
