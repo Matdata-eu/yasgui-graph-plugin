@@ -82,9 +82,11 @@ class GraphPlugin {
       const { nodes, edges } = triplesToGraph(triples, prefixMap);
       
       // Create container that properly fills YASR's results area
-      // Set resultsEl to use flexbox to contain the visualization
-      this.yasr.resultsEl.style.display = 'flex';
-      this.yasr.resultsEl.style.flexDirection = 'column';
+      // Ensure resultsEl uses flexbox (only set if not already configured)
+      if (!this.yasr.resultsEl.style.display || this.yasr.resultsEl.style.display === 'block') {
+        this.yasr.resultsEl.style.display = 'flex';
+        this.yasr.resultsEl.style.flexDirection = 'column';
+      }
       
       const container = document.createElement('div');
       container.style.width = '100%';
