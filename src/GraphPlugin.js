@@ -85,7 +85,6 @@ class GraphPlugin {
       const container = document.createElement('div');
       container.style.width = '100%';
       container.style.height = '100%';
-      container.style.minHeight = '600px';
       container.style.position = 'relative';
       container.style.overflow = 'hidden';
       this.yasr.resultsEl.appendChild(container);
