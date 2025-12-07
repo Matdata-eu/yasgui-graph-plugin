@@ -148,6 +148,7 @@
     // Detect if we're in development mode by checking if running on localhost/file protocol
     const isDev = window.location.hostname === 'localhost' || 
                    window.location.hostname === '127.0.0.1' ||
+                   window.location.hostname === '[::1]' ||
                    window.location.protocol === 'file:';
     
     let pluginLoaded = false;
@@ -169,7 +170,6 @@
     // In production mode or if dev load failed, load the bundle
     if (!pluginLoaded) {
       const script = document.createElement('script');
-      script.src = './dist/yasgui-graph-plugin.min.js';
       await new Promise((resolve, reject) => {
         script.onload = () => {
           console.log('✅ Graph Plugin loaded from bundle (production mode)');
@@ -180,6 +180,7 @@
           reject();
         };
         document.head.appendChild(script);
+        script.src = './dist/yasgui-graph-plugin.min.js';
       });
     }
     
