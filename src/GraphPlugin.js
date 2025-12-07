@@ -81,11 +81,16 @@ class GraphPlugin {
       // Transform triples to graph data
       const { nodes, edges } = triplesToGraph(triples, prefixMap);
       
-      // Create container
+      // Create container that properly fills YASR's results area
+      // Ensure resultsEl uses flexbox (only set if not already configured)
+      if (!this.yasr.resultsEl.style.display || this.yasr.resultsEl.style.display === 'block') {
+        this.yasr.resultsEl.style.display = 'flex';
+        this.yasr.resultsEl.style.flexDirection = 'column';
+      }
+      
       const container = document.createElement('div');
       container.style.width = '100%';
-      container.style.height = '100%';
-      container.style.minHeight = '600px';
+      container.style.flex = '1';  // Grow to fill available space
       container.style.position = 'relative';
       container.style.overflow = 'hidden';
       this.yasr.resultsEl.appendChild(container);
