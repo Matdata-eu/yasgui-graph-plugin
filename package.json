@@ -36,9 +36,6 @@
   "dependencies": {
     "vis-network": "^9.1.9"
   },
-  "peerDependencies": {
-    "@matdata/yasgui": "^5.0.0"
-  },
   "devDependencies": {
     "vite": "^5.0.0",
     "esbuild": "^0.19.0",
