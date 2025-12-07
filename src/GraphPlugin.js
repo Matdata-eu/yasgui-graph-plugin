@@ -3,6 +3,7 @@ import { getDefaultNetworkOptions } from './networkConfig.js';
 import { parseConstructResults } from './parsers.js';
 import { triplesToGraph } from './transformers.js';
 import { Network, DataSet } from 'vis-network/standalone';
+import { getCurrentTheme, getThemeNodeColors, watchThemeChanges } from './themeUtils.js';
 
 // Get vis-network classes
 function getVisNetwork() {
@@ -16,6 +17,8 @@ class GraphPlugin {
   constructor(yasr) {
     this.yasr = yasr;
     this.network = null;
+    this.currentTheme = getCurrentTheme();
+    this.themeObserver = null;
   }
 
   /**
@@ -78,8 +81,12 @@ class GraphPlugin {
       // Extract prefixes (pass both results and yasr instance)
       const prefixMap = extractPrefixes(this.yasr);
       
+      // Get current theme colors
+      this.currentTheme = getCurrentTheme();
+      const themeColors = getThemeNodeColors(this.currentTheme);
+      
       // Transform triples to graph data
-      const { nodes, edges } = triplesToGraph(triples, prefixMap);
+      const { nodes, edges } = triplesToGraph(triples, prefixMap, themeColors);
       
       // Create container
       const container = document.createElement('div');
@@ -97,7 +104,13 @@ class GraphPlugin {
       const edgesDataSet = new DataSet(edges);
       
       // Initialize network
-      const options = getDefaultNetworkOptions();
+      const options = getDefaultNetworkOptions(themeColors);
+      
+      // Store DataSets for theme updates
+      this.nodesDataSet = nodesDataSet;
+      this.edgesDataSet = edgesDataSet;
+      this.triples = triples;
+      this.prefixMap = prefixMap;
       this.network = new Network(
         container,
         { nodes: nodesDataSet, edges: edgesDataSet },
@@ -112,6 +125,13 @@ class GraphPlugin {
         this.network.setOptions({ physics: { enabled: true } });
         this.networkReady = true;
       });
+      
+      // Setup theme change observer
+      if (!this.themeObserver) {
+        this.themeObserver = watchThemeChanges((newTheme) => {
+          this.applyTheme(newTheme);
+        });
+      }
       
       // Add controls container AFTER network is created
       const controls = document.createElement('div');
@@ -156,6 +176,32 @@ class GraphPlugin {
   }
 
   /**
+   * Apply theme to existing network
+   * @param {string} newTheme - 'light' or 'dark'
+   */
+  applyTheme(newTheme) {
+    if (!this.network || !this.nodesDataSet || !this.triples || !this.prefixMap) {
+      return;
+    }
+    
+    this.currentTheme = newTheme;
+    const themeColors = getThemeNodeColors(newTheme);
+    
+    // Regenerate graph data with new theme colors
+    const { nodes, edges } = triplesToGraph(this.triples, this.prefixMap, themeColors);
+    
+    // Update DataSets
+    this.nodesDataSet.clear();
+    this.nodesDataSet.add(nodes);
+    this.edgesDataSet.clear();
+    this.edgesDataSet.add(edges);
+    
+    // Update network options
+    const options = getDefaultNetworkOptions(themeColors);
+    this.network.setOptions(options);
+  }
+
+  /**
    * Get icon for plugin tab
    * @returns {Element} Icon element
    */
@@ -164,6 +210,20 @@ class GraphPlugin {
     icon.className = 'fas fa-project-diagram';
     icon.setAttribute('aria-label', 'Graph visualization');
     return icon;
+  }
+  
+  /**
+   * Cleanup when plugin is destroyed
+   */
+  destroy() {
+    if (this.themeObserver) {
+      this.themeObserver.disconnect();
+      this.themeObserver = null;
+    }
+    if (this.network) {
+      this.network.destroy();
+      this.network = null;
+    }
   }
 }
 

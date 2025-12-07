@@ -1,8 +1,9 @@
 /**
  * Get default vis-network configuration options
+ * @param {Object} themeColors - Theme-specific colors for nodes, edges, and text
  * @returns {Object} vis-network options object
  */
-function getDefaultNetworkOptions() {
+function getDefaultNetworkOptions(themeColors) {
   return {
     autoResize: true,
     width: '100%',
@@ -33,29 +34,22 @@ function getDefaultNetworkOptions() {
     },
     
     nodes: {
-      shape: 'dot',
-      size: 20,
+      shape: "dot",
+      size: 10,
       font: {
-        size: 14,
-        color: '#000000',
-        align: 'center',
-        vadjust: 0,
-        multi: false,
+        size: 12,
+        color: themeColors.text,
       },
-      borderWidth: 2,
-      borderWidthSelected: 3,
+      borderWidth: 1,
+      borderWidthSelected: 2,
       labelHighlightBold: true,
-      fixed: {
-        x: false,
-        y: false,
-      },
     },
     
     edges: {
       arrows: {
         to: {
           enabled: true,
-          scaleFactor: 0.5,
+          scaleFactor: 0.6,
         },
       },
       smooth: {
@@ -65,6 +59,12 @@ function getDefaultNetworkOptions() {
       font: {
         size: 12,
         align: 'middle',
+        color: themeColors.edgeLabel,
+        background: themeColors.edgeLabelBackground,
+        strokeWidth: 0,  // Remove white outline/halo
+      },
+      color: {
+        color: themeColors.edge,
       },
     },
   };

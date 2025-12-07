@@ -5,9 +5,10 @@ import { getNodeColor } from './colorUtils.js';
  * Create deduplicated node map from triples
  * @param {Array} triples - RDF triples
  * @param {Map} prefixMap - Namespace to prefix mappings
+ * @param {Object} themeColors - Theme-specific colors for nodes
  * @returns {Map<string, Object>} Map of node value to GraphNode
  */
-function createNodeMap(triples, prefixMap) {
+function createNodeMap(triples, prefixMap, themeColors) {
   const nodeMap = new Map();
   let nodeId = 1;
   
@@ -23,14 +24,10 @@ function createNodeMap(triples, prefixMap) {
         id: nodeId++,
         uri: triple.subject,
         label: label,
-        color: getNodeColor({ uri: triple.subject, type: 'uri' }, triples),
+        color: getNodeColor({ uri: triple.subject, type: 'uri' }, triples, themeColors),
         type: 'uri',
         fullValue: triple.subject,
         title: isBlankNode ? triple.subject : applyPrefix(triple.subject, prefixMap),
-        font: {
-          vadjust: -30, // Position label above the node
-          align: 'center',
-        },
       });
     }
     
@@ -64,15 +61,12 @@ function createNodeMap(triples, prefixMap) {
         label: label,
         color: getNodeColor(
           { uri: objValue, type: isLiteral ? 'literal' : 'uri' },
-          triples
+          triples,
+          themeColors
         ),
         type: isLiteral ? 'literal' : 'uri',
         fullValue: fullValue,
         title: title,
-        font: {
-          vadjust: -30, // Position label above the node
-          align: 'center',
-        },
       });
     }
   });
@@ -122,10 +116,11 @@ function createEdgesArray(triples, nodeMap, prefixMap) {
  * Transform RDF triples to graph data structure
  * @param {Array} triples - RDF triples
  * @param {Map} prefixMap - Namespace to prefix mappings
+ * @param {Object} themeColors - Theme-specific colors for nodes
  * @returns {Object} {nodes: Array, edges: Array}
  */
-function triplesToGraph(triples, prefixMap) {
-  const nodeMap = createNodeMap(triples, prefixMap);
+function triplesToGraph(triples, prefixMap, themeColors) {
+  const nodeMap = createNodeMap(triples, prefixMap, themeColors);
   const edges = createEdgesArray(triples, nodeMap, prefixMap);
   const nodes = Array.from(nodeMap.values());
   
