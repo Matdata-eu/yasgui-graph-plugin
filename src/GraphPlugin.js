@@ -206,9 +206,22 @@ class GraphPlugin {
    * @returns {Element} Icon element
    */
   getIcon() {
-    const icon = document.createElement('span');
-    icon.className = 'fas fa-project-diagram';
+    const icon = document.createElement('div');
     icon.setAttribute('aria-label', 'Graph visualization');
+    icon.style.display = 'inline-flex';
+    icon.style.alignItems = 'center';
+    icon.style.justifyContent = 'center';
+    
+    // Create SVG icon for graph visualization
+    icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="3" cy="3" r="2" />
+      <circle cx="13" cy="3" r="2" />
+      <circle cx="8" cy="13" r="2" />
+      <line x1="4.5" y1="4" x2="7" y2="11.5" stroke="currentColor" stroke-width="1.5" />
+      <line x1="11.5" y1="4" x2="9" y2="11.5" stroke="currentColor" stroke-width="1.5" />
+      <line x1="5" y1="3" x2="11" y2="3" stroke="currentColor" stroke-width="1.5" />
+    </svg>`;
+    
     return icon;
   }
   
