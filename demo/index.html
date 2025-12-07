@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <!--
-  YASGUI Graph Plugin - Live Development Demo
+  YASGUI Graph Plugin - Demo Page
   
-  This demo loads ES modules directly from src/ for instant live reload.
-  Edit any source file (e.g., src/colorUtils.js) and refresh to see changes!
+  This demo automatically detects the environment:
+  - Development (localhost/file): Loads ES modules from src/ for live reload
+  - Production (GitHub Pages): Loads minified bundle from dist/
   
-  For production builds, run: npm run build
+  To develop locally: Open this file directly or run: npm run dev
+  For production builds: npm run build
 -->
 <html lang="en">
 <head>
@@ -143,30 +145,38 @@
   
   <!-- Graph Plugin: Load from source in dev, or from dist in production -->
   <script type="module">
-    // Try to load from source (development mode)
+    // Detect if we're in development mode by checking if running on localhost/file protocol
+    const isDev = window.location.hostname === 'localhost' || 
+                   window.location.hostname === '127.0.0.1' ||
+                   window.location.protocol === 'file:';
+    
     let pluginLoaded = false;
-    try {
-      const { default: GraphPlugin } = await import('../src/GraphPlugin.js');
-      if (window.Yasgui && window.Yasgui.Yasr) {
-        window.Yasgui.Yasr.registerPlugin('Graph-dev', GraphPlugin);
-        pluginLoaded = true;
-        console.log('Graph Plugin loaded from source (dev mode)');
+    
+    // In development mode, try to load from source
+    if (isDev) {
+      try {
+        const { default: GraphPlugin } = await import('../src/GraphPlugin.js');
+        if (window.Yasgui && window.Yasgui.Yasr) {
+          window.Yasgui.Yasr.registerPlugin('Graph', GraphPlugin);
+          pluginLoaded = true;
+          console.log('✅ Graph Plugin loaded from source (dev mode)');
+        }
+      } catch (error) {
+        console.log('⚠️ Source not available, falling back to bundle');
       }
-    } catch (error) {
-      console.log('Source not available, loading from bundle (production mode)');
     }
     
-    // Fall back to bundle if source didn't work
+    // In production mode or if dev load failed, load the bundle
     if (!pluginLoaded) {
       const script = document.createElement('script');
       script.src = './dist/yasgui-graph-plugin.min.js';
       await new Promise((resolve, reject) => {
         script.onload = () => {
-          console.log('Graph Plugin loaded from bundle');
+          console.log('✅ Graph Plugin loaded from bundle (production mode)');
           resolve();
         };
         script.onerror = () => {
-          console.error('Failed to load Graph Plugin bundle');
+          console.error('❌ Failed to load Graph Plugin bundle');
           reject();
         };
         document.head.appendChild(script);
