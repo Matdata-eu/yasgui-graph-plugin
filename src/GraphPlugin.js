@@ -90,8 +90,10 @@ class GraphPlugin {
       
       // Create container
       const container = document.createElement('div');
+      container.id = 'yasgui-graph-plugin-container';
       container.style.width = '100%';
-      container.style.height = '600px';
+      container.style.minHeight = '500px';
+      container.style.height = '100%';
       container.style.position = 'relative';
       container.style.overflow = 'hidden';
       this.yasr.resultsEl.appendChild(container);
