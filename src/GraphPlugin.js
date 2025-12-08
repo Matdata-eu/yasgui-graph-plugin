@@ -119,6 +119,13 @@ class GraphPlugin {
         options
       );
       
+      // Workaround for vis-network height bug - adjust based on YASGUI layout
+      this.network.once('afterDrawing', () => {
+        // Check if horizontal layout is active
+        const isHorizontal = document.querySelector('.orientation-horizontal') !== null;
+        container.style.height = isHorizontal ? '80vh' : '50vh';
+      });
+      
       // Track network readiness
       this.networkReady = false;
       
