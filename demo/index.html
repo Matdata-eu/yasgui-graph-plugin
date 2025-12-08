@@ -16,7 +16,7 @@
   <title>YASGUI Graph Plugin Demo</title>
   
   <!-- YASGUI CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.0.0/build/yasgui.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.1.0/build/yasgui.min.css">
   
   <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -138,7 +138,7 @@
   <div id="yasgui"></div>
   
   <!-- YASGUI JavaScript -->
-  <script src="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.0.0/build/yasgui.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.1.0/build/yasgui.min.js"></script>
   
   <!-- Sample queries -->
   <script src="./queries.js"></script>
@@ -188,8 +188,14 @@
     const yasgui = new Yasgui(document.getElementById('yasgui'), {
       // Set the SPARQL endpoint
       requestConfig: {
-        endpoint: 'http://localhost:3030/g',
+        endpoint: 'https://data-interop.era.europa.eu/api/sparql',
       },
+      endpointButtons: [
+        { endpoint: "http://localhost:3030/g", label: "localhost:3030/g" },
+        { endpoint: "https://dbpedia.org/sparql", label: "DBpedia" },
+        { endpoint: "https://query.wikidata.org/sparql", label: "Wikidata" },
+        { endpoint: "https://data-interop.era.europa.eu/api/sparql", label: "ERA" }
+      ],
       yasr: {
         pluginOrder: ['Table', 'Response', 'Graph'], 
         defaultPlugin: 'Graph',
