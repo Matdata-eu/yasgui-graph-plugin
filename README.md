@@ -16,6 +16,7 @@ A YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as i
 - **🔍 Navigation**: Mouse wheel zoom, drag to pan, "Zoom to Fit" button
 - **✋ Drag & Drop**: Reorganize nodes by dragging them to new positions
 - **💬 Tooltips**: Hover for full URI/literal details (300ms delay)
+- **🌓 Theme Support**: Automatic light/dark mode detection and dynamic color switching
 - **⚡ Performance**: Handles up to 1,000 nodes with <2s render time
 - **♿ Accessible**: WCAG AA color contrast, keyboard navigation support
 
@@ -24,7 +25,7 @@ A YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as i
 ### NPM
 
 ```bash
-npm install @matdata/yasgui-graph-plugin @matdata/yasgui vis-network
+npm install @matdata/yasgui-graph-plugin
 ```
 
 ```javascript
@@ -40,8 +41,8 @@ const yasgui = new Yasgui(document.getElementById('yasgui'));
 
 ```html
 <!-- YASGUI -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.0.0/build/yasgui.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.0.0/build/yasgui.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@matdata/yasgui/build/yasgui.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@matdata/yasgui/build/yasgui.min.js"></script>
 
 <!-- Graph Plugin -->
 <script src="https://cdn.jsdelivr.net/npm/@matdata/yasgui-graph-plugin/dist/yasgui-graph-plugin.min.js"></script>
@@ -147,12 +148,16 @@ npm install
 npm run build
 ```
 
-Output: `dist/yasgui-graph-plugin.min.js`
+Output:
+- `dist/yasgui-graph-plugin.esm.js` (ES Module for bundlers)
+- `dist/yasgui-graph-plugin.cjs.js` (CommonJS for Node.js)
+- `dist/yasgui-graph-plugin.min.js` (IIFE for browsers/unpkg)
+- `dist/index.d.ts` (TypeScript declarations)
 
 ### Local Testing
 
 1. Build the plugin: `npm run build`
-2. Open `example/index.html` in a browser
+2. Open `demo/index.html` in a browser (or run `npm run dev`)
 3. Try the sample queries in different tabs
 
 ### Code Quality
@@ -224,7 +229,7 @@ Contributions welcome! Please follow the project constitution (`.specify/memory/
 ### Plugin tab not showing
 - Verify plugin is registered correctly
 - Check browser console for errors
-- Verify YASGUI version is ^4.0.0
+- Ensure you're running a CONSTRUCT or DESCRIBE query
 
 ### Empty visualization
 - Ensure query type is **CONSTRUCT** or **DESCRIBE**
@@ -284,13 +289,17 @@ The demo automatically loads ES modules directly from `src/` in development mode
 
 ### Production Build
 
-Build the minified UMD bundle for distribution:
+Build all distribution formats:
 
 ```bash
 npm run build
 ```
 
-Output: `dist/yasgui-graph-plugin.min.js` (bundled with vis-network)
+Outputs:
+- `dist/yasgui-graph-plugin.esm.js` - ES Module format (bundled with vis-network)
+- `dist/yasgui-graph-plugin.cjs.js` - CommonJS format (bundled with vis-network)
+- `dist/yasgui-graph-plugin.min.js` - IIFE browser bundle (bundled with vis-network)
+- `dist/index.d.ts` - TypeScript type declarations
 
 ### Testing
 
