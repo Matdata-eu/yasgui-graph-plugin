@@ -16,7 +16,7 @@
   <title>YASGUI Graph Plugin Demo</title>
   
   <!-- YASGUI CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.1.0/build/yasgui.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.6.0/build/yasgui.min.css">
   
   <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -102,6 +102,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
   </style>
+
 </head>
 <body>
   <h1>🔷 YASGUI Graph Plugin Demo</h1>
@@ -138,34 +139,25 @@
   <div id="yasgui"></div>
   
   <!-- YASGUI JavaScript -->
-  <script src="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.1.0/build/yasgui.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.6.0/build/yasgui.min.js"></script>
   
   <!-- Sample queries -->
   <script src="./queries.js"></script>
   
   <!-- Graph Plugin: Load from source in dev, or from dist in production -->
   <script type="module">
-    // Detect if we're in development mode by checking if running on localhost/file protocol
-    const isDev = window.location.hostname === 'localhost' || 
-                   window.location.hostname === '127.0.0.1' ||
-                   window.location.hostname === '[::1]' ||
-                   window.location.protocol === 'file:';
+    // Detect if running in Vite dev server (module system available)
+    const isViteDev = import.meta.env?.DEV;
     
     let pluginLoaded = false;
     
-    // In development mode, try to load from source
-    if (isDev) {
-      try {
-        const { default: GraphPlugin } = await import('../src/GraphPlugin.js');
-        if (window.Yasgui && window.Yasgui.Yasr) {
-          window.Yasgui.Yasr.registerPlugin('Graph-Dev', GraphPlugin);
-          pluginLoaded = true;
-          console.log('✅ Graph Plugin loaded from source (dev mode)');
-        }
-      } catch (error) {
-        console.log('⚠️ Source not available, falling back to bundle');
-      }
-    }
+    if (isViteDev) {
+      // Development mode: Load plugin from source
+      const { default: GraphPlugin } = await import('@matdata/yasgui-graph-plugin');
+      window.YasguiGraphPlugin = { GraphPlugin };
+      pluginLoaded = true;
+      console.log('✅ Graph Plugin loaded from source (Vite dev mode)');
+    }     
     
     // In production mode or if dev load failed, load the bundle
     if (!pluginLoaded) {
@@ -184,6 +176,14 @@
       });
     }
     
+    // Register the graph plugin
+    if (window.Yasgui && window.YasguiGraphPlugin) {
+      Yasgui.Yasr.registerPlugin('Graph-Dev', window.YasguiGraphPlugin.GraphPlugin);
+      console.log('✅ Graph Plugin registered as "Graph-Dev"');
+    } else {
+      console.error('❌ Failed to load Graph Plugin');
+    }
+
     // Initialize YASGUI after plugin is registered
     const yasgui = new Yasgui(document.getElementById('yasgui'), {
       // Set the SPARQL endpoint
@@ -197,8 +197,7 @@
         { endpoint: "https://data-interop.era.europa.eu/api/sparql", label: "ERA" }
       ],
       yasr: {
-        pluginOrder: ['Table', 'Response', 'Graph'], 
-        defaultPlugin: 'Graph',
+        defaultPlugin: 'Graph-Dev',
       },
       copyEndpointOnNewTab: false,
     });
