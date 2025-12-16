@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Build configurations for different module formats
-const builds = [
+const buildConfigs = [
   // ES Module (for bundlers like webpack, vite, rollup)
   {
     entryPoints: ['src/index.js'],
@@ -54,7 +54,7 @@ const typeDeclaration = `declare module '@matdata/yasgui-graph-plugin';
 `;
 
 // Build all formats
-Promise.all(builds.map(config => esbuild.build(config)))
+Promise.all(buildConfigs.map(config => esbuild.build(config)))
   .then(() => {
     // Create TypeScript declaration file
     const distDir = path.join(__dirname, 'dist');
