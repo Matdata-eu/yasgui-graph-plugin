@@ -6,11 +6,7 @@ import type { NetworkOptions, ThemeColors } from './types';
  * @returns vis-network options object
  */
 export function getDefaultNetworkOptions(themeColors: ThemeColors): NetworkOptions {
-  return {
-    autoResize: true,
-    width: '100%',
-    height: '100%',
-    
+  return {    
     // Configure canvas background color based on theme
     configure: {
       enabled: false

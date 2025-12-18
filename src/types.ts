@@ -52,9 +52,6 @@ export interface ThemeColors {
 
 // vis-network types
 export interface NetworkOptions {
-  autoResize: boolean;
-  width: string;
-  height: string;
   configure: {
     enabled: boolean;
   };
