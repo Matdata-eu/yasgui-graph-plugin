@@ -8,7 +8,7 @@
             "type": "msedge",
             "request": "launch",
             "name": "Launch Demo",
-            "url": "http://localhost:5173/demo/index.html",
+            "url": "http://localhost:5173/standalone.html",
             "webRoot": "${workspaceFolder}"
         }
     ]
