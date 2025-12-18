@@ -1,9 +1,11 @@
+import type { NetworkOptions, ThemeColors } from './types';
+
 /**
  * Get default vis-network configuration options
- * @param {Object} themeColors - Theme-specific colors for nodes, edges, and text
- * @returns {Object} vis-network options object
+ * @param themeColors - Theme-specific colors for nodes, edges, and text
+ * @returns vis-network options object
  */
-function getDefaultNetworkOptions(themeColors) {
+export function getDefaultNetworkOptions(themeColors: ThemeColors): NetworkOptions {
   return {
     autoResize: true,
     width: '100%',
@@ -39,7 +41,7 @@ function getDefaultNetworkOptions(themeColors) {
     },
     
     nodes: {
-      shape: "dot",
+      shape: 'dot',
       size: 10,
       font: {
         size: 12,
@@ -60,6 +62,7 @@ function getDefaultNetworkOptions(themeColors) {
       smooth: {
         enabled: true,
         type: 'dynamic',
+        roundness: 0.5,
       },
       font: {
         size: 12,
@@ -74,7 +77,3 @@ function getDefaultNetworkOptions(themeColors) {
     },
   };
 }
-
-export {
-  getDefaultNetworkOptions,
-};

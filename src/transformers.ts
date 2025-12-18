@@ -1,15 +1,20 @@
-import { applyPrefix, truncateLabel } from './prefixUtils.js';
-import { getNodeColor } from './colorUtils.js';
+import type { GraphNode, GraphEdge, RDFTriple, ThemeColors } from './types';
+import { applyPrefix, truncateLabel } from './prefixUtils';
+import { getNodeColor } from './colorUtils';
 
 /**
  * Create deduplicated node map from triples
- * @param {Array} triples - RDF triples
- * @param {Map} prefixMap - Namespace to prefix mappings
- * @param {Object} themeColors - Theme-specific colors for nodes
- * @returns {Map<string, Object>} Map of node value to GraphNode
+ * @param triples - RDF triples
+ * @param prefixMap - Namespace to prefix mappings
+ * @param themeColors - Theme-specific colors for nodes
+ * @returns Map of node value to GraphNode
  */
-function createNodeMap(triples, prefixMap, themeColors) {
-  const nodeMap = new Map();
+export function createNodeMap(
+  triples: RDFTriple[],
+  prefixMap: Map<string, string>,
+  themeColors: ThemeColors
+): Map<string, GraphNode> {
+  const nodeMap = new Map<string, GraphNode>();
   let nodeId = 1;
   
   triples.forEach((triple) => {
@@ -37,7 +42,9 @@ function createNodeMap(triples, prefixMap, themeColors) {
       const isLiteral = triple.object.type === 'literal';
       const isBlankNode = !isLiteral && objValue.startsWith('_:');
       
-      let label, fullValue, title;
+      let label: string;
+      let fullValue: string;
+      let title: string;
       
       if (isLiteral) {
         label = truncateLabel(objValue);
@@ -76,14 +83,18 @@ function createNodeMap(triples, prefixMap, themeColors) {
 
 /**
  * Create edges array from triples
- * @param {Array} triples - RDF triples
- * @param {Map} nodeMap - Map of node values to GraphNodes
- * @param {Map} prefixMap - Namespace to prefix mappings
- * @returns {Array<Object>} Array of GraphEdge objects
+ * @param triples - RDF triples
+ * @param nodeMap - Map of node values to GraphNodes
+ * @param prefixMap - Namespace to prefix mappings
+ * @returns Array of GraphEdge objects
  */
-function createEdgesArray(triples, nodeMap, prefixMap) {
-  const edges = [];
-  const edgeSet = new Set(); // For deduplication
+export function createEdgesArray(
+  triples: RDFTriple[],
+  nodeMap: Map<string, GraphNode>,
+  prefixMap: Map<string, string>
+): GraphEdge[] {
+  const edges: GraphEdge[] = [];
+  const edgeSet = new Set<string>(); // For deduplication
   
   triples.forEach((triple) => {
     const fromNode = nodeMap.get(triple.subject);
@@ -114,21 +125,19 @@ function createEdgesArray(triples, nodeMap, prefixMap) {
 
 /**
  * Transform RDF triples to graph data structure
- * @param {Array} triples - RDF triples
- * @param {Map} prefixMap - Namespace to prefix mappings
- * @param {Object} themeColors - Theme-specific colors for nodes
- * @returns {Object} {nodes: Array, edges: Array}
+ * @param triples - RDF triples
+ * @param prefixMap - Namespace to prefix mappings
+ * @param themeColors - Theme-specific colors for nodes
+ * @returns Object with nodes and edges arrays
  */
-function triplesToGraph(triples, prefixMap, themeColors) {
+export function triplesToGraph(
+  triples: RDFTriple[],
+  prefixMap: Map<string, string>,
+  themeColors: ThemeColors
+): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const nodeMap = createNodeMap(triples, prefixMap, themeColors);
   const edges = createEdgesArray(triples, nodeMap, prefixMap);
   const nodes = Array.from(nodeMap.values());
   
   return { nodes, edges };
 }
-
-export {
-  createNodeMap,
-  createEdgesArray,
-  triplesToGraph,
-};

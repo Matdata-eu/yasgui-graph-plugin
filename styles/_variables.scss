@@ -1,0 +1,80 @@
+// Color scheme variables
+$color-blank-node: #ffff00;
+$color-literal: #808080;
+$color-rdf-type: #00ff00;
+$color-uri: #0000ff;
+
+// Dark theme colors
+$color-blank-node-dark: #ffeb3b;
+$color-literal-dark: #9e9e9e;
+$color-rdf-type-dark: #4caf50;
+$color-uri-dark: #2196f3;
+
+// Background colors
+$bg-light: #ffffff;
+$bg-dark: #1e1e1e;
+
+// Text colors
+$text-light: #666666;
+$text-dark: #cccccc;
+$text-error: #f44336;
+
+// Button colors
+$button-primary-bg: #4caf50;
+$button-primary-bg-hover: #45a049;
+$button-text: #ffffff;
+
+// Shadow
+$box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+// Export as CSS variables for JS access
+:root {
+  // Light theme colors (default)
+  --yasgui-graph-uri: #97C2FC;
+  --yasgui-graph-literal: #a6c8a6ff;
+  --yasgui-graph-blank-node: #c5c5c5ff;
+  --yasgui-graph-type-object: #e15b13ff;
+  --yasgui-graph-text: #000000;
+  --yasgui-graph-edge: #cccccc;
+  --yasgui-graph-edge-label: #666666;
+  --yasgui-graph-edge-label-bg: rgba(255, 255, 255, 0.8);
+  --yasgui-graph-background: #ffffff;
+  
+  // Legacy variables for backward compatibility
+  --color-blank-node: #{$color-blank-node};
+  --color-literal: #{$color-literal};
+  --color-rdf-type: #{$color-rdf-type};
+  --color-uri: #{$color-uri};
+  
+  --color-blank-node-dark: #{$color-blank-node-dark};
+  --color-literal-dark: #{$color-literal-dark};
+  --color-rdf-type-dark: #{$color-rdf-type-dark};
+  --color-uri-dark: #{$color-uri-dark};
+  
+  --bg-light: #{$bg-light};
+  --bg-dark: #{$bg-dark};
+  
+  --text-light: #{$text-light};
+  --text-dark: #{$text-dark};
+  --text-error: #{$text-error};
+  
+  --button-primary-bg: #{$button-primary-bg};
+  --button-primary-bg-hover: #{$button-primary-bg-hover};
+  --button-text: #{$button-text};
+  
+  --box-shadow: #{$box-shadow};
+}
+
+// Dark theme colors
+[data-theme='dark'],
+.dark-theme {
+  --yasgui-graph-uri: #97C2FC;
+  --yasgui-graph-literal: #a6c8a6ff;
+  --yasgui-graph-blank-node: #888888;
+  --yasgui-graph-type-object: #e15b13ff;
+  --yasgui-graph-text: #e0e0e0;
+  --yasgui-graph-edge: #666666;
+  --yasgui-graph-edge-label: #cccccc;
+  --yasgui-graph-edge-label-bg: rgba(30, 30, 30, 0.8);
+  --yasgui-graph-background: #1e1e1e;
+}

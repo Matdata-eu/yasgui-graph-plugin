@@ -1,45 +1,55 @@
-import { extractPrefixes } from './prefixUtils.js';
-import { getDefaultNetworkOptions } from './networkConfig.js';
-import { parseConstructResults } from './parsers.js';
-import { triplesToGraph } from './transformers.js';
+import type { Yasr, RDFTriple } from './types';
+import { extractPrefixes } from './prefixUtils';
+import { getDefaultNetworkOptions } from './networkConfig';
+import { parseConstructResults } from './parsers';
+import { triplesToGraph } from './transformers';
 import { Network, DataSet } from 'vis-network/standalone';
-import { getCurrentTheme, getThemeNodeColors, watchThemeChanges } from './themeUtils.js';
-
-// Get vis-network classes
-function getVisNetwork() {
-  return { Network, DataSet };
-}
+import { getCurrentTheme, getThemeNodeColors, watchThemeChanges } from './themeUtils';
+import '../styles/index.scss';
 
 /**
  * YASR plugin for visualizing SPARQL CONSTRUCT results as graphs
  */
 class GraphPlugin {
-  constructor(yasr) {
+  private yasr: Yasr;
+  private network: any | null;
+  private currentTheme: string;
+  private themeObserver: MutationObserver | null;
+  private nodesDataSet: any;
+  private edgesDataSet: any;
+  private triples: RDFTriple[] | null;
+  private prefixMap: Map<string, string> | null;
+
+  constructor(yasr: Yasr) {
     this.yasr = yasr;
     this.network = null;
     this.currentTheme = getCurrentTheme();
     this.themeObserver = null;
+    this.nodesDataSet = null;
+    this.edgesDataSet = null;
+    this.triples = null;
+    this.prefixMap = null;
   }
 
   /**
    * Plugin priority (higher = shown first in tabs)
    */
-  static get priority() {
+  static get priority(): number {
     return 20;
   }
 
   /**
    * Plugin label for tab display
    */
-  static get label() {
+  static get label(): string {
     return 'Graph';
   }
 
   /**
    * Check if plugin can handle the current results
-   * @returns {boolean} True if results are from CONSTRUCT or DESCRIBE query
+   * @returns True if results are from CONSTRUCT or DESCRIBE query
    */
-  canHandleResults() {
+  canHandleResults(): boolean {
     if (!this.yasr || !this.yasr.results) return false;
 
     const results = this.yasr.results;
@@ -64,58 +74,49 @@ class GraphPlugin {
   /**
    * Render the graph visualization
    */
-  draw() {
+  draw(): void {
     // Clear previous content
     this.yasr.resultsEl.innerHTML = '';
     
     try {
       // Parse RDF triples from results
-      const triples = parseConstructResults(this.yasr.results);
+      this.triples = parseConstructResults(this.yasr.results);
       
       // Handle empty results
-      if (!triples || triples.length === 0) {
-        this.yasr.resultsEl.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No graph data to visualize</div>';
+      if (!this.triples || this.triples.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'yasgui-graph-plugin-empty-state';
+        emptyDiv.textContent = 'No graph data to visualize';
+        this.yasr.resultsEl.appendChild(emptyDiv);
         return;
       }
       
-      // Extract prefixes (pass both results and yasr instance)
-      const prefixMap = extractPrefixes(this.yasr);
+      // Extract prefixes
+      this.prefixMap = extractPrefixes(this.yasr);
       
       // Get current theme colors
       this.currentTheme = getCurrentTheme();
       const themeColors = getThemeNodeColors(this.currentTheme);
       
       // Transform triples to graph data
-      const { nodes, edges } = triplesToGraph(triples, prefixMap, themeColors);
+      const { nodes, edges } = triplesToGraph(this.triples, this.prefixMap, themeColors);
       
       // Create container
       const container = document.createElement('div');
+      container.className = 'yasgui-graph-plugin-container';
       container.id = 'yasgui-graph-plugin-container';
-      container.style.width = '100%';
-      container.style.minHeight = '500px';
-      container.style.height = '100%';
-      container.style.position = 'relative';
-      container.style.overflow = 'hidden';
       this.yasr.resultsEl.appendChild(container);
       
-      // Get vis-network classes
-      const { Network, DataSet } = getVisNetwork();
-      
       // Create vis-network DataSets
-      const nodesDataSet = new DataSet(nodes);
-      const edgesDataSet = new DataSet(edges);
+      this.nodesDataSet = new DataSet(nodes);
+      this.edgesDataSet = new DataSet(edges);
       
       // Initialize network
       const options = getDefaultNetworkOptions(themeColors);
       
-      // Store DataSets for theme updates
-      this.nodesDataSet = nodesDataSet;
-      this.edgesDataSet = edgesDataSet;
-      this.triples = triples;
-      this.prefixMap = prefixMap;
       this.network = new Network(
         container,
-        { nodes: nodesDataSet, edges: edgesDataSet },
+        { nodes: this.nodesDataSet, edges: this.edgesDataSet },
         options
       );
       
@@ -126,16 +127,12 @@ class GraphPlugin {
       this.network.once('afterDrawing', () => {
         // Check if horizontal layout is active
         const isHorizontal = document.querySelector('.orientation-horizontal') !== null;
-        container.style.height = isHorizontal ? '80vh' : '50vh';
+        container.classList.add(isHorizontal ? 'horizontal-layout' : 'vertical-layout');
       });
-      
-      // Track network readiness
-      this.networkReady = false;
       
       // Disable physics after stabilization (performance optimization)
       this.network.on('stabilizationIterationsDone', () => {
         this.network.setOptions({ physics: { enabled: true } });
-        this.networkReady = true;
       });
       
       // Setup theme change observer
@@ -147,28 +144,13 @@ class GraphPlugin {
       
       // Add controls container AFTER network is created
       const controls = document.createElement('div');
-      controls.style.position = 'absolute';
-      controls.style.top = '10px';
-      controls.style.right = '10px';
-      controls.style.zIndex = '10000';
-      controls.style.display = 'flex';
-      controls.style.gap = '10px';
-      controls.style.pointerEvents = 'auto';
+      controls.className = 'yasgui-graph-controls';
       container.appendChild(controls);
       
       // Add "Zoom to Fit" button
       const fitButton = document.createElement('button');
+      fitButton.className = 'yasgui-graph-button';
       fitButton.textContent = 'Zoom to Fit';
-      fitButton.style.padding = '8px 12px';
-      fitButton.style.background = '#4CAF50';
-      fitButton.style.color = 'white';
-      fitButton.style.border = 'none';
-      fitButton.style.borderRadius = '4px';
-      fitButton.style.cursor = 'pointer';
-      fitButton.style.fontSize = '14px';
-      fitButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
-      fitButton.onmouseover = () => fitButton.style.background = '#45a049';
-      fitButton.onmouseout = () => fitButton.style.background = '#4CAF50';
       fitButton.onclick = () => {
         if (this.network) {
           this.network.fit({ animation: { duration: 300, easingFunction: 'easeInOutQuad' } });
@@ -177,21 +159,24 @@ class GraphPlugin {
       controls.appendChild(fitButton);
       
       // Add performance warning for large graphs
-      if (triples.length > 1000) {
+      if (this.triples.length > 1000) {
         console.warn('Large graph detected (>1000 triples). Rendering may be slow.');
       }
       
     } catch (error) {
       console.error('Error rendering graph:', error);
-      this.yasr.resultsEl.innerHTML = '<div style="padding: 20px; color: red;">Error rendering graph. See console for details.</div>';
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'yasgui-graph-plugin-error';
+      errorDiv.textContent = 'Error rendering graph. See console for details.';
+      this.yasr.resultsEl.appendChild(errorDiv);
     }
   }
 
   /**
    * Apply theme to existing network
-   * @param {string} newTheme - 'light' or 'dark'
+   * @param newTheme - 'light' or 'dark'
    */
-  applyTheme(newTheme) {
+  private applyTheme(newTheme: string): void {
     if (!this.network || !this.nodesDataSet || !this.triples || !this.prefixMap) {
       return;
     }
@@ -217,28 +202,24 @@ class GraphPlugin {
   }
   
   /**
-   * Apply background color to vis-network canvas
-   * @param {string} color - Background color
+   * Apply background color to vis-network canvas using CSS custom property
+   * @param color - Background color
    */
-  applyCanvasBackground(color) {
+  private applyCanvasBackground(color: string): void {
     if (this.network && this.network.body && this.network.body.container) {
-      const canvas = this.network.body.container.querySelector('canvas');
-      if (canvas) {
-        canvas.style.backgroundColor = color;
-      }
+      // Set CSS custom property on container instead of inline style
+      (this.network.body.container as HTMLElement).style.setProperty('--yasgui-graph-canvas-bg', color);
     }
   }
 
   /**
    * Get icon for plugin tab
-   * @returns {Element} Icon element
+   * @returns Icon element
    */
-  getIcon() {
+  getIcon(): HTMLElement {
     const icon = document.createElement('div');
+    icon.className = 'yasgui-graph-icon';
     icon.setAttribute('aria-label', 'Graph visualization');
-    icon.style.display = 'inline-flex';
-    icon.style.alignItems = 'center';
-    icon.style.justifyContent = 'center';
     
     // Create SVG icon for graph visualization
     icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -256,7 +237,7 @@ class GraphPlugin {
   /**
    * Cleanup when plugin is destroyed
    */
-  destroy() {
+  destroy(): void {
     if (this.themeObserver) {
       this.themeObserver.disconnect();
       this.themeObserver = null;

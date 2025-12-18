@@ -8,6 +8,14 @@
 
 **Organization**: Tasks are grouped by user story (P1-P5) to enable independent implementation and testing of each story.
 
+**Refactoring Note** (2025-12-18): All source code has been refactored to TypeScript and SCSS:
+- ✅ Created TypeScript configuration (tsconfig.json)
+- ✅ Converted all .js files to .ts with proper type definitions
+- ✅ Extracted inline styles to styles/ folder with SCSS
+- ✅ Updated build configuration to handle TypeScript and SCSS
+- ✅ Added type checking, linting, and formatting scripts
+- ✅ All builds passing with TypeScript declarations generated
+
 ## Format: `- [ ] [ID] [P?] [Story?] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)

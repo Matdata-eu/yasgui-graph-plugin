@@ -9,221 +9,224 @@
   For production builds: npm run build
 -->
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Graph Plugin - Standalone Demo</title>
-  
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f5f5f5;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    
-    h1 {
-      color: #333;
-      margin: 0 0 10px 0;
-      font-size: 28px;
-    }
-    
-    .controls-bar {
-      background: white;
-      padding: 12px;
-      border-radius: 4px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    
-    .controls-bar button {
-      padding: 8px 16px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      background: white;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s;
-    }
-    
-    .controls-bar button:hover {
-      background: #f5f5f5;
-      border-color: #1976d2;
-    }
-    
-    .controls-bar button.active {
-      background: #1976d2;
-      color: white;
-      border-color: #1976d2;
-    }
-    
-    .controls-bar select {
-      padding: 8px 12px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
-      background: white;
-    }
-    
-    .controls-bar label {
-      font-size: 14px;
-      color: #666;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    #demo-container {
-      flex: 1;
-      background: white;
-      border-radius: 4px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      overflow: hidden;
-      position: relative;
-      min-height: 0;
-    }
-    
-    .info {
-      background: #e3f2fd;
-      color: #1976d2;
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-size: 13px;
-      border-left: 3px solid #1976d2;
-    }
-  </style>
-  
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Plugin - Standalone Demo</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            color: #333;
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+
+        .controls-bar {
+            background: white;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls-bar button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .controls-bar button:hover {
+            background: #f5f5f5;
+            border-color: #1976d2;
+        }
+
+        .controls-bar button.active {
+            background: #1976d2;
+            color: white;
+            border-color: #1976d2;
+        }
+
+        .controls-bar select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .controls-bar label {
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #demo-container {
+            flex: 1;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+            min-height: 0;
+        }
+
+        .info {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            border-left: 3px solid #1976d2;
+        }
+    </style>
+
 </head>
+
 <body>
-  <h1>🔷 Graph Plugin Standalone Demo</h1>
-  
-  <div class="controls-bar">
-    <label>
-      Dataset:
-      <select id="dataset-selector">
-        <option value="basic">Basic Graph (2 people)</option>
-        <option value="social">Social Network (5 people)</option>
-        <option value="ontology">Ontology Structure</option>
-        <option value="blankNodes">Blank Nodes (Addresses)</option>
-        <option value="multiEdges">Multiple Edge Types</option>
-        <option value="large">Large Graph (50 nodes)</option>
-        <option value="empty">Empty Results</option>
-        <option value="longStrings">Long String Values</option>
-        <option value="specialChars">Special Characters</option>
-      </select>
-    </label>
-    
-    <button id="theme-toggle">Toggle Theme</button>
-    
-    <div class="info">
-      💡 This demo runs the plugin standalone without YASGUI to avoid conflicts
+    <h1>🔷 Graph Plugin Standalone Demo</h1>
+
+    <div class="controls-bar">
+        <label>
+            Dataset:
+            <select id="dataset-selector">
+                <option value="basic">Basic Graph (2 people)</option>
+                <option value="social">Social Network (5 people)</option>
+                <option value="ontology">Ontology Structure</option>
+                <option value="blankNodes">Blank Nodes (Addresses)</option>
+                <option value="multiEdges">Multiple Edge Types</option>
+                <option value="large">Large Graph (50 nodes)</option>
+                <option value="empty">Empty Results</option>
+                <option value="longStrings">Long String Values</option>
+                <option value="specialChars">Special Characters</option>
+            </select>
+        </label>
+
+        <button id="theme-toggle">Toggle Theme</button>
+
+        <div class="info">
+            💡 This demo runs the plugin standalone without YASGUI to avoid conflicts
+        </div>
     </div>
-  </div>
-  
-  <div id="demo-container"></div>
-  
-  <!-- Mock Data -->
-  <script src="./mock-data.js"></script>
-  
-  <script type="module">
-    // Detect if running in Vite dev server
-    const isViteDev = import.meta.env?.DEV;
-    
-    // Load plugin
-    let GraphPlugin;
-    if (isViteDev) {
-      const module = await import('../src/index.js');
-      GraphPlugin = module.default;
-      console.log('✅ Loaded from source (dev mode)');
-    } else {
-      // In production, load from dist
-      const module = await import('../dist/yasgui-graph-plugin.esm.js');
-      GraphPlugin = module.default;
-      console.log('✅ Loaded from bundle (production mode)');
-    }
 
-    // Use mock data from mock-data.js
-    const mockData = window.mockDatasets;
+    <div id="demo-container"></div>
 
-    // Mock YASR-like interface
-    const createMockYasr = (dataset) => ({
-      config: {
-        pluginsOptions: {
-          Graph: {}
+    <!-- Mock Data -->
+    <script src="./mock-data.js"></script>
+
+    <script type="module">
+        // Detect if running in Vite dev server
+        const isViteDev = import.meta.env?.DEV;
+
+        // Load plugin
+        let GraphPlugin;
+        if (isViteDev) {
+            const module = await import('../src/index.ts');
+            GraphPlugin = module.default;
+            console.log('✅ Loaded from source (dev mode)');
+        } else {
+            // In production, load from dist
+            const module = await import('../dist/yasgui-graph-plugin.esm.js');
+            GraphPlugin = module.default;
+            console.log('✅ Loaded from bundle (production mode)');
         }
-      },
-      results: {
-        getBindings: () => dataset.results.bindings,
-        head: dataset.head,
-        results: dataset.results
-      },
-      resultsEl: document.getElementById('demo-container'),
-      yasqe: {
-        getValue: () => '',
-        getQuery: () => ''
-      },
-      getPrefixes: () => dataset.prefixes || {}
-    });
 
-    // Initialize plugin
-    let currentTheme = 'light';
-    let currentDataset = 'basic';
-    let plugin = new GraphPlugin(createMockYasr(mockData[currentDataset]));
-    
-    // Draw the plugin
-    await plugin.draw();
-    console.log(`✅ Plugin initialized with ${currentDataset} dataset (${mockData[currentDataset].results.bindings.length} triples)`);
+        // Use mock data from mock-data.js
+        const mockData = window.mockDatasets;
 
-    // Theme toggle
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-      currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', currentTheme);
-      
-      // Redraw to apply theme
-      if (plugin && plugin.applyTheme) {
-        plugin.applyTheme(currentTheme);
-      }
-      
-      console.log(`🎨 Theme: ${currentTheme}`);
-    });
+        // Mock YASR-like interface
+        const createMockYasr = (dataset) => ({
+            config: {
+                pluginsOptions: {
+                    Graph: {}
+                }
+            },
+            results: {
+                getBindings: () => dataset.results.bindings,
+                head: dataset.head,
+                results: dataset.results
+            },
+            resultsEl: document.getElementById('demo-container'),
+            yasqe: {
+                getValue: () => '',
+                getQuery: () => ''
+            },
+            getPrefixes: () => dataset.prefixes || {}
+        });
 
-    // Dataset switcher
-    document.getElementById('dataset-selector').addEventListener('change', async (e) => {
-      currentDataset = e.target.value;
-      const dataset = mockData[currentDataset];
-      
-      // Destroy old plugin
-      if (plugin && plugin.destroy) {
-        plugin.destroy();
-      }
-      
-      // Create new plugin with new data
-      plugin = new GraphPlugin(createMockYasr(dataset));
-      
-      // Draw plugin
-      await plugin.draw();
-      
-      // Reapply theme
-      if (currentTheme !== 'light') {
-        document.documentElement.setAttribute('data-theme', currentTheme);
-        if (plugin && plugin.applyTheme) {
-          plugin.applyTheme(currentTheme);
-        }
-      }
-      
-      console.log(`📊 Loaded dataset: ${currentDataset} (${dataset.results.bindings.length} triples)`);
-    });
-  </script>
+        // Initialize plugin
+        let currentTheme = 'light';
+        let currentDataset = 'basic';
+        let plugin = new GraphPlugin(createMockYasr(mockData[currentDataset]));
+
+        // Draw the plugin
+        await plugin.draw();
+        console.log(`✅ Plugin initialized with ${currentDataset} dataset (${mockData[currentDataset].results.bindings.length} triples)`);
+
+        // Theme toggle
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+
+            // Redraw to apply theme
+            if (plugin && plugin.applyTheme) {
+                plugin.applyTheme(currentTheme);
+            }
+
+            console.log(`🎨 Theme: ${currentTheme}`);
+        });
+
+        // Dataset switcher
+        document.getElementById('dataset-selector').addEventListener('change', async (e) => {
+            currentDataset = e.target.value;
+            const dataset = mockData[currentDataset];
+
+            // Destroy old plugin
+            if (plugin && plugin.destroy) {
+                plugin.destroy();
+            }
+
+            // Create new plugin with new data
+            plugin = new GraphPlugin(createMockYasr(dataset));
+
+            // Draw plugin
+            await plugin.draw();
+
+            // Reapply theme
+            if (currentTheme !== 'light') {
+                document.documentElement.setAttribute('data-theme', currentTheme);
+                if (plugin && plugin.applyTheme) {
+                    plugin.applyTheme(currentTheme);
+                }
+            }
+
+            console.log(`📊 Loaded dataset: ${currentDataset} (${dataset.results.bindings.length} triples)`);
+        });
+    </script>
 </body>
+
 </html>

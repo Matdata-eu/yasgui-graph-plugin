@@ -10,17 +10,18 @@
   For production builds: npm run build
 -->
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YASGUI Graph Plugin Demo</title>
-  
+
   <!-- YASGUI CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.6.0/build/yasgui.min.css">
-  
+
   <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -29,20 +30,20 @@
       padding-top: 0px;
       background: #f5f5f5;
     }
-    
+
     h1 {
       color: #333;
       margin-bottom: 5px;
     }
-    
+
     .instructions {
       background: white;
       padding: 5px;
       border-radius: 4px;
-      margin-bottom: 5px;      
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 5px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
-    
+
     .instructions h2 {
       margin-top: 0;
       font-size: 18px;
@@ -53,60 +54,61 @@
       align-items: center;
       gap: 10px;
     }
-    
+
     .instructions h2:hover {
       color: #0b7dda;
     }
-    
+
     .toggle-icon {
       transition: transform 0.3s ease;
       font-size: 14px;
     }
-    
+
     .toggle-icon.collapsed {
       transform: rotate(-90deg);
     }
-    
+
     .instructions-content {
       max-height: 500px;
       overflow: hidden;
       transition: max-height 0.3s ease, opacity 0.3s ease;
       opacity: 1;
     }
-    
+
     .instructions-content.collapsed {
       max-height: 0;
       opacity: 0;
     }
-    
+
     .instructions ul {
       margin: 10px 0;
       padding-left: 20px;
     }
-    
+
     .instructions li {
       margin: 5px 0;
     }
-    
+
     .instructions code {
       background: #f0f0f0;
       padding: 2px 6px;
       border-radius: 3px;
       font-family: monospace;
     }
-    
+
     #yasgui {
       height: 800px;
       background: white;
       border-radius: 4px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
   </style>
 
 </head>
+
 <body>
   <h1>🔷 YASGUI Graph Plugin Demo</h1>
-  
+
   <div class="instructions">
     <h2 onclick="toggleInstructions()">
       <span class="toggle-icon collapsed">▼</span>
@@ -115,18 +117,20 @@
     <div class="instructions-content collapsed">
       <ul>
         <li>Click the <strong>"Graph"</strong> tab after running a CONSTRUCT or DESCRIBE query</li>
-        <li><strong>Sample queries</strong> are pre-loaded (see tabs: Basic, Ontology, Blank Nodes, Multiple Edges, DESCRIBE)</li>
+        <li><strong>Sample queries</strong> are pre-loaded (see tabs: Basic, Ontology, Blank Nodes, Multiple Edges,
+          DESCRIBE)</li>
         <li><strong>Navigate</strong>: Mouse wheel to zoom, drag background to pan, click "Zoom to Fit" button</li>
         <li><strong>Reorganize</strong>: Drag individual nodes to rearrange the layout</li>
         <li><strong>Inspect</strong>: Hover over nodes/edges to see full details (300ms delay)</li>
-        <li><strong>Color coding</strong>: <span style="color: #c5c5c5ff">⬤ Grey</span> = literals, 
-            <span style="color: #e15b13ff">⬤ Orange</span> = blank nodes, 
-            <span style="color: #a6c8a6ff">⬤ Green</span> = rdf:type objects, 
-            <span style="color: #97C2FC">⬤ Blue</span> = other URIs</li>
+        <li><strong>Color coding</strong>: <span style="color: #c5c5c5ff">⬤ Grey</span> = literals,
+          <span style="color: #e15b13ff">⬤ Orange</span> = blank nodes,
+          <span style="color: #a6c8a6ff">⬤ Green</span> = rdf:type objects,
+          <span style="color: #97C2FC">⬤ Blue</span> = other URIs
+        </li>
       </ul>
     </div>
   </div>
-  
+
   <script>
     function toggleInstructions() {
       const content = document.querySelector('.instructions-content');
@@ -135,30 +139,30 @@
       icon.classList.toggle('collapsed');
     }
   </script>
-  
+
   <div id="yasgui"></div>
-  
+
   <!-- YASGUI JavaScript -->
   <script src="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.6.0/build/yasgui.min.js"></script>
-  
+
   <!-- Sample queries -->
   <script src="./queries.js"></script>
-  
+
   <!-- Graph Plugin: Load from source in dev, or from dist in production -->
   <script type="module">
     // Detect if running in Vite dev server (module system available)
     const isViteDev = import.meta.env?.DEV;
-    
+
     let pluginLoaded = false;
-    
+
     if (isViteDev) {
       // Development mode: Load plugin from source
       const { default: GraphPlugin } = await import('@matdata/yasgui-graph-plugin');
       window.YasguiGraphPlugin = { GraphPlugin };
       pluginLoaded = true;
       console.log('✅ Graph Plugin loaded from source (Vite dev mode)');
-    }     
-    
+    }
+
     // In production mode or if dev load failed, load the bundle
     if (!pluginLoaded) {
       const script = document.createElement('script');
@@ -175,7 +179,7 @@
         script.src = './dist/yasgui-graph-plugin.min.js';
       });
     }
-    
+
     // Register the graph plugin
     if (window.Yasgui && window.YasguiGraphPlugin) {
       Yasgui.Yasr.registerPlugin('Graph-Dev', window.YasguiGraphPlugin.GraphPlugin);
@@ -201,7 +205,7 @@
       },
       copyEndpointOnNewTab: false,
     });
-    
+
     // Add sample query tabs
     const tabs = [
       { name: 'Ontology', query: queries.ontology },
@@ -210,7 +214,7 @@
       { name: 'DESCRIBE Query', query: queries.describe },
       { name: 'Basic Graph', query: queries.basic },
     ];
-    
+
     // Close all existing tabs
     let tab;
     while ((tab = yasgui.getTab()) != null) {
@@ -221,17 +225,18 @@
         break;
       }
     }
-    
+
     // Add sample tabs
     tabs.forEach((tab, index) => {
       const yasguiTab = yasgui.addTab(
         true, // set active
-        { 
+        {
           name: tab.name,
           yasqe: { value: tab.query }
         }
-      );      
+      );
     });
   </script>
 </body>
+
 </html>

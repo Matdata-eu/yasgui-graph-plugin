@@ -1,11 +1,17 @@
+import type { GraphNode, RDFTriple, ThemeColors } from './types';
+
 /**
  * Determine node color based on type and predicates
- * @param {Object} node - Node object with uri, type properties
- * @param {Array} triples - All RDF triples for context
- * @param {Object} themeColors - Theme-specific colors
- * @returns {string} Hex color code
+ * @param node - Node object with uri, type properties
+ * @param triples - All RDF triples for context
+ * @param themeColors - Theme-specific colors
+ * @returns Hex color code
  */
-function getNodeColor(node, triples, themeColors) {
+export function getNodeColor(
+  node: Pick<GraphNode, 'uri' | 'type'>,
+  triples: RDFTriple[],
+  themeColors: ThemeColors
+): string {
   // Blank nodes
   if (node.uri && node.uri.startsWith('_:')) {
     return themeColors.blankNode;
@@ -30,7 +36,3 @@ function getNodeColor(node, triples, themeColors) {
   // Other URIs
   return themeColors.uri;
 }
-
-export {
-  getNodeColor,
-};
