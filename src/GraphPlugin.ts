@@ -90,6 +90,10 @@ class GraphPlugin {
         this.yasr.resultsEl.appendChild(emptyDiv);
         return;
       }
+      // Add performance warning for large graphs
+      if (this.triples.length > 1000) {
+        console.warn('Large graph detected (>1000 triples). Rendering may be slow.');
+      }
       
       // Extract prefixes
       this.prefixMap = extractPrefixes(this.yasr);
@@ -123,13 +127,6 @@ class GraphPlugin {
       // Apply background color to canvas
       this.applyCanvasBackground(themeColors.background);
       
-      // Workaround for vis-network height bug - adjust based on YASGUI layout
-      this.network.once('afterDrawing', () => {
-        // Check if horizontal layout is active
-        const isHorizontal = document.querySelector('.orientation-horizontal') !== null;
-        container.classList.add(isHorizontal ? 'horizontal-layout' : 'vertical-layout');
-      });
-      
       // Disable physics after stabilization (performance optimization)
       this.network.on('stabilizationIterationsDone', () => {
         this.network.setOptions({ physics: { enabled: true } });
@@ -158,11 +155,8 @@ class GraphPlugin {
       };
       controls.appendChild(fitButton);
       
-      // Add performance warning for large graphs
-      if (this.triples.length > 1000) {
-        console.warn('Large graph detected (>1000 triples). Rendering may be slow.');
-      }
-      
+      this.network.fit();
+
     } catch (error) {
       console.error('Error rendering graph:', error);
       const errorDiv = document.createElement('div');
