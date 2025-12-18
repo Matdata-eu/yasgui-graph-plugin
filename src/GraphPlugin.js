@@ -119,6 +119,9 @@ class GraphPlugin {
         options
       );
       
+      // Apply background color to canvas
+      this.applyCanvasBackground(themeColors.background);
+      
       // Workaround for vis-network height bug - adjust based on YASGUI layout
       this.network.once('afterDrawing', () => {
         // Check if horizontal layout is active
@@ -208,6 +211,22 @@ class GraphPlugin {
     // Update network options
     const options = getDefaultNetworkOptions(themeColors);
     this.network.setOptions(options);
+    
+    // Update canvas background
+    this.applyCanvasBackground(themeColors.background);
+  }
+  
+  /**
+   * Apply background color to vis-network canvas
+   * @param {string} color - Background color
+   */
+  applyCanvasBackground(color) {
+    if (this.network && this.network.body && this.network.body.container) {
+      const canvas = this.network.body.container.querySelector('canvas');
+      if (canvas) {
+        canvas.style.backgroundColor = color;
+      }
+    }
   }
 
   /**

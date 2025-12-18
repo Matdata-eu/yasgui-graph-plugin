@@ -9,6 +9,11 @@ function getDefaultNetworkOptions(themeColors) {
     width: '100%',
     height: '100%',
     
+    // Configure canvas background color based on theme
+    configure: {
+      enabled: false
+    },
+    
     physics: {
       enabled: true,
       stabilization: {

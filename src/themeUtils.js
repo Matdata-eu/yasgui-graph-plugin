@@ -43,6 +43,7 @@ function getThemeNodeColors(theme) {
       edge: '#666666',          // Darker edges
       edgeLabel: '#cccccc',     // Lighter edge labels
       edgeLabelBackground: 'rgba(30, 30, 30, 0.8)',  // Dark semi-transparent background
+      background: '#1e1e1e',    // Dark background for canvas
     };
   }
   
@@ -56,6 +57,7 @@ function getThemeNodeColors(theme) {
     edge: '#cccccc',          // Light grey edges
     edgeLabel: '#666666',     // Dark grey edge labels
     edgeLabelBackground: 'rgba(255, 255, 255, 0.8)',  // Light semi-transparent background
+    background: '#ffffff',    // Light background for canvas
   };
 }
 
