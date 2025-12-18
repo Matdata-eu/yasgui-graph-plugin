@@ -11,7 +11,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@matdata/yasgui-graph-plugin": resolve(__dirname, "src/index.js"),
+      "@matdata/yasgui-graph-plugin": resolve(__dirname, "src/index.ts"),
     },
     extensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
   },
