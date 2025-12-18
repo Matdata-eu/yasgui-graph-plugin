@@ -1,0 +1,5 @@
+@import './_variables.css';
+@import './graph-plugin.css';
+
+/* Main entry point for all styles */
+/* This file will be imported by the TypeScript code */

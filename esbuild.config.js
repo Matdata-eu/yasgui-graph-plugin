@@ -1,9 +1,36 @@
+
 const esbuild = require('esbuild');
-const { sassPlugin } = require('esbuild-sass-plugin');
 const fs = require('fs');
 const path = require('path');
 
-// Build configurations for different module formats
+const postcss = require('postcss');
+const postcssImport = require('postcss-import');
+const cssnano = require('cssnano');
+
+const production = process.env.NODE_ENV === 'production';
+
+// CSS Plugin for esbuild
+const cssPlugin = {
+  name: 'css',
+  setup(build) {
+    build.onLoad({ filter: /\.css$/ }, async (args) => {
+      const css = fs.readFileSync(args.path, 'utf8');
+      
+      // Process CSS with PostCSS
+      const result = await postcss([
+        postcssImport(),
+        ...(production ? [cssnano()] : [])
+      ]).process(css, { from: args.path });
+      
+      return {
+        contents: result.css,
+        loader: 'css',
+      };
+    });
+  },
+};
+
+// Build configuration
 const buildConfigs = [
   // ES Module (for bundlers like webpack, vite, rollup)
   {
@@ -14,11 +41,11 @@ const buildConfigs = [
     target: ['es2018'],
     format: 'esm',
     outfile: 'dist/yasgui-graph-plugin.esm.js',
-    external: [], // Bundle vis-network
+    external: [], 
     loader: {
-      '.ts': 'ts',
+      '.js': 'js',
     },
-    plugins: [sassPlugin()],
+    plugins: [cssPlugin],
   },
   // CommonJS (for Node.js)
   {
@@ -29,11 +56,11 @@ const buildConfigs = [
     target: ['es2018'],
     format: 'cjs',
     outfile: 'dist/yasgui-graph-plugin.cjs.js',
-    external: [], // Bundle vis-network
+    external: [], 
     loader: {
-      '.ts': 'ts',
+      '.js': 'js',
     },
-    plugins: [sassPlugin()],
+    plugins: [cssPlugin],
   },
   // IIFE (for browsers via unpkg.com and script tags)
   {
@@ -43,41 +70,49 @@ const buildConfigs = [
     sourcemap: true,
     target: ['es2018'],
     format: 'iife',
-    globalName: 'GraphPlugin',
+    globalName: 'TablePlugin',
     outfile: 'dist/yasgui-graph-plugin.min.js',
-    external: [], // Bundle vis-network for browser usage
+    external: [],
     loader: {
-      '.ts': 'ts',
+      '.js': 'js',
     },
-    plugins: [sassPlugin()],
+    plugins: [cssPlugin],
   },
 ];
 
-// Build TypeScript declarations
-async function buildDeclarations() {
-  const { execSync } = require('child_process');
-  try {
-    execSync('tsc --emitDeclarationOnly', { stdio: 'inherit' });
-    console.log('✅ TypeScript declarations generated');
-  } catch (err) {
-    console.warn('⚠️  TypeScript declarations generation failed (non-fatal)');
-  }
-}
+// TypeScript declaration content
+const typeDeclaration = `declare module '@matdata/yasgui-graph-plugin';
+`;
 
 // Build all formats
 Promise.all(buildConfigs.map(config => esbuild.build(config)))
-  .then(async () => {
-    // Generate TypeScript declarations
-    await buildDeclarations();
-    
-    console.log('✅ Build complete:');
-    console.log('   - dist/yasgui-graph-plugin.esm.js (ES Module for bundlers)');
-    console.log('   - dist/yasgui-graph-plugin.cjs.js (CommonJS for Node.js)');
-    console.log('   - dist/yasgui-graph-plugin.min.js (IIFE for browsers/unpkg)');
-    console.log('   - dist/*.d.ts (TypeScript declarations)');
-    console.log('   - Styles bundled inline');
+  .then(() => {
+    // Create TypeScript declaration file
+    const distDir = path.join(__dirname, 'dist');
+    if (!fs.existsSync(distDir)) {
+      fs.mkdirSync(distDir, { recursive: true });
+    }
+
+    // Build CSS bundle
+    const cssContent = fs.readFileSync('styles/index.css', 'utf8');
+    return postcss([
+      postcssImport(),
+      ...(production ? [cssnano()] : [])
+    ]).process(cssContent, { from: 'styles/index.css' })
+      .then((cssResult) => {
+        fs.writeFileSync('dist/yasgui-graph-plugin.css', cssResult.css);
+        fs.writeFileSync(path.join(distDir, 'index.d.ts'), typeDeclaration);
+
+        console.log('✅ Build complete:');
+        console.log('   - dist/yasgui-graph-plugin.esm.js (ES Module for bundlers)');
+        console.log('   - dist/yasgui-graph-plugin.cjs.js (CommonJS for Node.js)');
+        console.log('   - dist/yasgui-graph-plugin.min.js (IIFE for browsers/unpkg)');
+        console.log('   - dist/yasgui-graph-plugin.css (Bundled CSS)');
+        console.log('   - dist/index.d.ts (TypeScript declarations)');
+      });
   })
   .catch((err) => {
     console.error('❌ Build failed:', err);
     process.exit(1);
   });
+

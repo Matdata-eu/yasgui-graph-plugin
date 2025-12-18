@@ -5,7 +5,7 @@ import { parseConstructResults } from './parsers';
 import { triplesToGraph } from './transformers';
 import { Network, DataSet } from 'vis-network/standalone';
 import { getCurrentTheme, getThemeNodeColors, watchThemeChanges } from './themeUtils';
-import '../styles/index.scss';
+import '../styles/index.css';
 
 /**
  * YASR plugin for visualizing SPARQL CONSTRUCT results as graphs
