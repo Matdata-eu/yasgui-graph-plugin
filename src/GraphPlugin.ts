@@ -127,9 +127,11 @@ class GraphPlugin {
       // Apply background color to canvas
       this.applyCanvasBackground(themeColors.background);
       
-      // Disable physics after stabilization (performance optimization)
+      // Disable physics after stabilization and fit to view
       this.network.on('stabilizationIterationsDone', () => {
         this.network.setOptions({ physics: { enabled: true } });
+        // Fit the graph to view after layout is complete
+        this.network.fit({ maxZoomLevel: 1000.0 });
       });
       
       // Setup theme change observer
@@ -150,12 +152,10 @@ class GraphPlugin {
       fitButton.textContent = 'Zoom to Fit';
       fitButton.onclick = () => {
         if (this.network) {
-          this.network.fit({ animation: { duration: 300, easingFunction: 'easeInOutQuad' } });
+          this.network.fit({ maxZoomLevel: 1000.0, animation: { duration: 300, easingFunction: 'easeInOutQuad' } });
         }
       };
       controls.appendChild(fitButton);
-      
-      this.network.fit();
 
     } catch (error) {
       console.error('Error rendering graph:', error);
