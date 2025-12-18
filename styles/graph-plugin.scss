@@ -4,19 +4,9 @@
 .yasgui-graph-plugin {
   &-container {
     width: 100%;
-    min-height: 500px;
     height: 100%;
     position: relative;
     overflow: hidden;
-
-    // Dynamic height adjustments for YASGUI layout
-    &.horizontal-layout {
-      height: 80vh;
-    }
-
-    &.vertical-layout {
-      height: 50vh;
-    }
 
     // Canvas background controlled by CSS variable
     canvas {
