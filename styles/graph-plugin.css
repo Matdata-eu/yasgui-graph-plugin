@@ -1,7 +1,7 @@
 /* Graph plugin container */
 .yasgui-graph-plugin-container {
   width: 100%;
-  height: 100%;
+  height: 500px; /* Initial fixed height as workaround for viz-network bug */
   position: relative;
   overflow: hidden;
 }

@@ -15,6 +15,7 @@ class GraphPlugin {
   private network: any | null;
   private currentTheme: string;
   private themeObserver: MutationObserver | null;
+  private resizeObserver: ResizeObserver | null;
   private nodesDataSet: any;
   private edgesDataSet: any;
   private triples: RDFTriple[] | null;
@@ -25,6 +26,7 @@ class GraphPlugin {
     this.network = null;
     this.currentTheme = getCurrentTheme();
     this.themeObserver = null;
+    this.resizeObserver = null;
     this.nodesDataSet = null;
     this.edgesDataSet = null;
     this.triples = null;
@@ -131,7 +133,11 @@ class GraphPlugin {
       this.network.on('stabilizationIterationsDone', () => {
         this.network.setOptions({ physics: { enabled: true } });
         // Fit the graph to view after layout is complete
-        this.network.fit({ maxZoomLevel: 1000.0 });
+        this.network.fit({ maxZoomLevel: 3.0 });
+        
+        // Setup ResizeObserver to adjust container height based on parent
+        // Workaround for viz-network bug: must use fixed pixel height
+        this.setupContainerResize(container);
       });
       
       // Setup theme change observer
@@ -205,6 +211,38 @@ class GraphPlugin {
       (this.network.body.container as HTMLElement).style.setProperty('--yasgui-graph-canvas-bg', color);
     }
   }
+  
+  /**
+   * Setup ResizeObserver to adjust container height based on parent
+   * Workaround for viz-network bug: container must have fixed pixel height
+   * @param container - The graph container element
+   */
+  private setupContainerResize(container: HTMLElement): void {
+    const parent = container.parentElement;
+    if (!parent) return;
+    
+    // Function to update container height to match parent
+    const updateHeight = () => {
+      const parentHeight = parent.clientHeight;
+      if (parentHeight > 0) {
+        container.style.height = `${parentHeight}px`;
+        // Trigger network redraw after resize
+        if (this.network) {
+          this.network.fit({ maxZoomLevel: 1000.0 });
+        }
+      }
+    };
+    
+    // Initial height adjustment
+    updateHeight();
+    
+    // Watch for parent size changes
+    this.resizeObserver = new ResizeObserver(() => {
+      updateHeight();
+    });
+    
+    this.resizeObserver.observe(parent);
+  }
 
   /**
    * Get icon for plugin tab
@@ -235,6 +273,10 @@ class GraphPlugin {
     if (this.themeObserver) {
       this.themeObserver.disconnect();
       this.themeObserver = null;
+    }
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
     }
     if (this.network) {
       this.network.destroy();
