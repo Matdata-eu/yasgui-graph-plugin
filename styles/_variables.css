@@ -1,51 +1,69 @@
-/* Color scheme variables */
+/* Color scheme variables using YASGUI CSS custom properties with fallbacks */
 :root {
-  /* Light theme colors (default) */
-  --yasgui-graph-uri: #97C2FC;
+  /* Graph-specific node colors (custom to this plugin) */
+  --yasgui-graph-uri: #97c2fc;
   --yasgui-graph-literal: #a6c8a6ff;
   --yasgui-graph-blank-node: #c5c5c5ff;
   --yasgui-graph-type-object: #e15b13ff;
-  --yasgui-graph-text: #000000;
-  --yasgui-graph-edge: #cccccc;
-  --yasgui-graph-edge-label: #666666;
-  --yasgui-graph-edge-label-bg: rgba(255, 255, 255, 0.8);
-  --yasgui-graph-background: #ffffff;
-  
+
+  /* Graph text and edges - using YASGUI variables with fallbacks */
+  --yasgui-graph-text: var(--yasgui-text-primary, #000000);
+  --yasgui-graph-edge: var(--yasgui-border-color, #cccccc);
+  --yasgui-graph-edge-label: var(--yasgui-text-secondary, #666666);
+  --yasgui-graph-edge-label-bg: var(--yasgui-bg-primary, rgba(255, 255, 255, 0.8));
+  --yasgui-graph-background: var(--yasgui-bg-primary, #ffffff);
+
+  /* UI elements - using YASGUI variables with fallbacks */
+  --yasgui-graph-canvas-bg: var(--yasgui-bg-primary, #ffffff);
+  --yasgui-graph-button-bg: var(--yasgui-accent-color, #4caf50);
+  --yasgui-graph-button-hover: var(--yasgui-link-hover, #45a049);
+  --yasgui-graph-button-text: var(--yasgui-button-text, #ffffff);
+  --yasgui-graph-empty-text: var(--yasgui-text-secondary, #666666);
+  --yasgui-graph-error-text: #f44336;
+
+  /* Shadow */
+  --yasgui-graph-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
   /* Legacy variables for backward compatibility */
   --color-blank-node: #ffff00;
   --color-literal: #808080;
   --color-rdf-type: #00ff00;
   --color-uri: #0000ff;
-  
+
   --color-blank-node-dark: #ffeb3b;
   --color-literal-dark: #9e9e9e;
   --color-rdf-type-dark: #4caf50;
   --color-uri-dark: #2196f3;
-  
+
   --bg-light: #ffffff;
   --bg-dark: #1e1e1e;
-  
+
   --text-light: #666666;
   --text-dark: #cccccc;
   --text-error: #f44336;
-  
+
   --button-primary-bg: #4caf50;
   --button-primary-bg-hover: #45a049;
   --button-text: #ffffff;
-  
+
   --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Dark theme colors */
 [data-theme='dark'],
 .dark-theme {
-  --yasgui-graph-uri: #97C2FC;
+  /* Graph-specific node colors in dark mode */
+  --yasgui-graph-uri: #97c2fc;
   --yasgui-graph-literal: #a6c8a6ff;
   --yasgui-graph-blank-node: #888888;
   --yasgui-graph-type-object: #e15b13ff;
-  --yasgui-graph-text: #e0e0e0;
-  --yasgui-graph-edge: #666666;
-  --yasgui-graph-edge-label: #cccccc;
-  --yasgui-graph-edge-label-bg: rgba(30, 30, 30, 0.8);
-  --yasgui-graph-background: #1e1e1e;
+
+  /* Override with YASGUI dark theme variables */
+  --yasgui-graph-text: var(--yasgui-text-primary, #e0e0e0);
+  --yasgui-graph-edge: var(--yasgui-border-color, #666666);
+  --yasgui-graph-edge-label: var(--yasgui-text-secondary, #cccccc);
+  --yasgui-graph-edge-label-bg: var(--yasgui-bg-secondary, rgba(30, 30, 30, 0.8));
+  --yasgui-graph-background: var(--yasgui-bg-primary, #1e1e1e);
+  --yasgui-graph-canvas-bg: var(--yasgui-bg-primary, #1e1e1e);
+  --yasgui-graph-empty-text: var(--yasgui-text-secondary, #cccccc);
 }

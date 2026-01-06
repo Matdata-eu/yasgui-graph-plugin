@@ -7,27 +7,18 @@
 }
 
 .yasgui-graph-plugin-container canvas {
-  background-color: var(--yasgui-graph-canvas-bg, var(--bg-light));
-}
-
-.yasgui-graph-plugin-container[data-theme='dark'] canvas,
-.dark-theme .yasgui-graph-plugin-container canvas {
-  background-color: var(--yasgui-graph-canvas-bg, var(--bg-dark));
+  background-color: var(--yasgui-graph-canvas-bg);
 }
 
 .yasgui-graph-plugin-empty-state {
   padding: 20px;
   text-align: center;
-  color: var(--text-light);
-}
-
-.dark-theme .yasgui-graph-plugin-empty-state {
-  color: var(--text-dark);
+  color: var(--yasgui-graph-empty-text);
 }
 
 .yasgui-graph-plugin-error {
   padding: 20px;
-  color: var(--text-error);
+  color: var(--yasgui-graph-error-text);
 }
 
 /* Controls container */
@@ -44,18 +35,18 @@
 /* Button styles */
 .yasgui-graph-button {
   padding: 8px 12px;
-  background: var(--button-primary-bg);
-  color: var(--button-text);
+  background: var(--yasgui-graph-button-bg);
+  color: var(--yasgui-graph-button-text);
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
-  box-shadow: var(--box-shadow);
+  box-shadow: var(--yasgui-graph-shadow);
   transition: background 0.2s ease;
 }
 
 .yasgui-graph-button:hover {
-  background: var(--button-primary-bg-hover);
+  background: var(--yasgui-graph-button-hover);
 }
 
 .yasgui-graph-button:active {
