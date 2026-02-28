@@ -54,6 +54,13 @@ class GraphPlugin {
   }
 
   /**
+   * Help/documentation URL
+   */
+  static get helpReference(): string {
+    return 'https://yasgui-doc.matdata.eu/docs/user-guide#graph-plugin';
+  }
+
+  /**
    * Check if plugin can handle the current results
    * @returns True if results are from CONSTRUCT or DESCRIBE query
    */
