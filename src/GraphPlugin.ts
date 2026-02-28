@@ -126,6 +126,9 @@ class GraphPlugin {
         options
       );
       
+      // Setup custom HTML tooltip rendering
+      this.setupHtmlTooltips(container);
+      
       // Apply background color to canvas
       this.applyCanvasBackground(themeColors.background);
       
@@ -169,6 +172,141 @@ class GraphPlugin {
       errorDiv.className = 'yasgui-graph-plugin-error';
       errorDiv.textContent = 'Error rendering graph. See console for details.';
       this.yasr.resultsEl.appendChild(errorDiv);
+    }
+  }
+
+  /**
+   * Setup custom HTML tooltip rendering for vis-network
+   * @param container - The graph container element
+   */
+  private setupHtmlTooltips(container: HTMLElement): void {
+    if (!this.network) return;
+    
+    let hideTimeout: number | null = null;
+    
+    // Create tooltip on hover start
+    this.network.on('hoverNode', (params: any) => {
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+      }
+      
+      const nodeId = params.node;
+      const node = this.nodesDataSet.get(nodeId);
+      
+      if (node && node.title) {
+        this.showHtmlTooltip(container, node.title, params.pointer.DOM);
+      }
+    });
+    
+    this.network.on('hoverEdge', (params: any) => {
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+      }
+      
+      const edgeId = params.edge;
+      const edge = this.edgesDataSet.get(edgeId);
+      
+      if (edge && edge.title) {
+        this.showHtmlTooltip(container, edge.title, params.pointer.DOM);
+      }
+    });
+    
+    // Hide tooltip on blur with delay to allow mouse to move into tooltip
+    this.network.on('blurNode', () => {
+      hideTimeout = window.setTimeout(() => {
+        this.hideHtmlTooltipIfNotHovered(container);
+      }, 200);
+    });
+    
+    this.network.on('blurEdge', () => {
+      hideTimeout = window.setTimeout(() => {
+        this.hideHtmlTooltipIfNotHovered(container);
+      }, 200);
+    });
+    
+    // Hide tooltip when dragging or zooming
+    this.network.on('dragStart', () => {
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+      }
+      this.hideHtmlTooltip(container);
+    });
+    
+    this.network.on('zoom', () => {
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+      }
+      this.hideHtmlTooltip(container);
+    });
+  }
+
+  /**
+   * Show HTML tooltip at specified position
+   * @param container - Container element
+   * @param htmlContent - HTML content to display
+   * @param position - Mouse position {x, y}
+   */
+  private showHtmlTooltip(container: HTMLElement, htmlContent: string, position: { x: number; y: number }): void {
+    // Remove existing tooltip if any
+    this.hideHtmlTooltip(container);
+    
+    // Create new tooltip
+    const tooltip = document.createElement('div');
+    tooltip.className = 'yasgui-graph-tooltip-container';
+    tooltip.innerHTML = htmlContent;
+    
+    // Position tooltip near mouse cursor
+    tooltip.style.position = 'absolute';
+    tooltip.style.left = `${position.x + 10}px`;
+    tooltip.style.top = `${position.y + 10}px`;
+    tooltip.style.zIndex = '1000';
+    
+    // Add mouse leave handler to hide tooltip when mouse leaves it
+    tooltip.addEventListener('mouseleave', () => {
+      this.hideHtmlTooltip(container);
+    });
+    
+    container.appendChild(tooltip);
+    
+    // Adjust position if tooltip goes off-screen
+    const rect = tooltip.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    
+    if (rect.right > containerRect.right) {
+      tooltip.style.left = `${position.x - rect.width - 10}px`;
+    }
+    if (rect.bottom > containerRect.bottom) {
+      tooltip.style.top = `${position.y - rect.height - 10}px`;
+    }
+  }
+
+  /**
+   * Hide HTML tooltip
+   * @param container - Container element
+   */
+  private hideHtmlTooltip(container: HTMLElement): void {
+    const existingTooltip = container.querySelector('.yasgui-graph-tooltip-container');
+    if (existingTooltip) {
+      existingTooltip.remove();
+    }
+  }
+
+  /**
+   * Hide HTML tooltip only if mouse is not hovering over it
+   * @param container - Container element
+   */
+  private hideHtmlTooltipIfNotHovered(container: HTMLElement): void {
+    const existingTooltip = container.querySelector('.yasgui-graph-tooltip-container');
+    if (existingTooltip) {
+      // Check if mouse is currently over the tooltip
+      const isHovered = existingTooltip.matches(':hover');
+      if (!isHovered) {
+        existingTooltip.remove();
+      }
     }
   }
 

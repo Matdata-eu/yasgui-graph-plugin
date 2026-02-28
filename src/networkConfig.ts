@@ -34,6 +34,8 @@ export function getDefaultNetworkOptions(themeColors: ThemeColors): NetworkOptio
       zoomView: true,
       hover: true,
       tooltipDelay: 300, // 300ms hover delay per spec
+      hideEdgesOnDrag: false,
+      hideEdgesOnZoom: false,
     },
     
     nodes: {

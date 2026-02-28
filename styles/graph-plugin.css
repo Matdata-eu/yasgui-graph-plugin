@@ -68,6 +68,12 @@
 
 /* Modern tooltip styles - override vis-network defaults */
 .yasgui-graph-plugin-container .vis-tooltip {
+  display: none !important; /* Hide default vis-network tooltips */
+}
+
+/* Custom HTML tooltip container */
+.yasgui-graph-tooltip-container {
+  position: absolute;
   background-color: rgba(28, 28, 32, 0.95);
   color: #f0f0f0;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -78,7 +84,10 @@
   max-width: 340px;
   white-space: normal;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  pointer-events: none;
+  pointer-events: auto;
+  z-index: 1000;
+  user-select: text;
+  cursor: text;
 }
 
 .yasgui-graph-tooltip {
