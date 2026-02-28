@@ -5,6 +5,8 @@ import { parseConstructResults } from './parsers';
 import { triplesToGraph } from './transformers';
 import { Network, DataSet } from 'vis-network/standalone';
 import { getCurrentTheme, getThemeNodeColors, watchThemeChanges } from './themeUtils';
+import { loadSettings, saveSettings } from './settings';
+import type { GraphPluginSettings } from './settings';
 import '../styles/index.css';
 
 /**
@@ -20,6 +22,7 @@ class GraphPlugin {
   private edgesDataSet: any;
   private triples: RDFTriple[] | null;
   private prefixMap: Map<string, string> | null;
+  private settings: GraphPluginSettings;
 
   constructor(yasr: Yasr) {
     this.yasr = yasr;
@@ -31,6 +34,7 @@ class GraphPlugin {
     this.edgesDataSet = null;
     this.triples = null;
     this.prefixMap = null;
+    this.settings = loadSettings();
   }
 
   /**
@@ -105,7 +109,7 @@ class GraphPlugin {
       const themeColors = getThemeNodeColors(this.currentTheme);
       
       // Transform triples to graph data
-      const { nodes, edges } = triplesToGraph(this.triples, this.prefixMap, themeColors);
+      const { nodes, edges } = triplesToGraph(this.triples, this.prefixMap, themeColors, this.settings);
       
       // Create container
       const container = document.createElement('div');
@@ -118,7 +122,7 @@ class GraphPlugin {
       this.edgesDataSet = new DataSet(edges);
       
       // Initialize network
-      const options = getDefaultNetworkOptions(themeColors);
+      const options = getDefaultNetworkOptions(themeColors, this.settings);
       
       this.network = new Network(
         container,
@@ -179,6 +183,19 @@ class GraphPlugin {
         }
       };
       controls.appendChild(fitButton);
+
+      // Add "Settings" button
+      const settingsButton = document.createElement('button');
+      settingsButton.className = 'yasgui-graph-button yasgui-graph-settings-button';
+      settingsButton.setAttribute('aria-label', 'Graph settings');
+      settingsButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M8 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
+        <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.434.901-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.892 3.434-.901 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.892-1.64-.901-3.434-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.474l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
+      </svg> Settings`;
+      settingsButton.onclick = () => {
+        this.toggleSettingsPanel(container);
+      };
+      controls.appendChild(settingsButton);
 
     } catch (error) {
       console.error('Error rendering graph:', error);
@@ -346,7 +363,7 @@ class GraphPlugin {
     });
 
     // Regenerate graph data with new theme colors
-    const { nodes, edges } = triplesToGraph(this.triples, this.prefixMap, themeColors);
+    const { nodes, edges } = triplesToGraph(this.triples, this.prefixMap, themeColors, this.settings);
     
     // Update DataSets
     this.nodesDataSet.clear();
@@ -367,7 +384,7 @@ class GraphPlugin {
     }
     
     // Update network options
-    const options = getDefaultNetworkOptions(themeColors);
+    const options = getDefaultNetworkOptions(themeColors, this.settings);
     this.network.setOptions(options);
     
     // Update canvas background
@@ -415,6 +432,153 @@ class GraphPlugin {
     });
     
     this.resizeObserver.observe(parent);
+  }
+
+  /**
+   * Toggle the settings panel open/closed
+   * @param container - The graph container element
+   */
+  private toggleSettingsPanel(container: HTMLElement): void {
+    const existing = container.querySelector('.yasgui-graph-settings-panel');
+    if (existing) {
+      existing.remove();
+    } else {
+      container.appendChild(this.createSettingsPanel(container));
+    }
+  }
+
+  /**
+   * Build and return the settings panel element
+   * @param container - The graph container element (used to re-draw on change)
+   */
+  private createSettingsPanel(_container: HTMLElement): HTMLElement {
+    const panel = document.createElement('div');
+    panel.className = 'yasgui-graph-settings-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Graph settings');
+
+    const title = document.createElement('div');
+    title.className = 'yasgui-graph-settings-title';
+    title.textContent = 'Graph Settings';
+    panel.appendChild(title);
+
+    // Helper: create a section header
+    const addSection = (label: string) => {
+      const h = document.createElement('div');
+      h.className = 'yasgui-graph-settings-section';
+      h.textContent = label;
+      panel.appendChild(h);
+    };
+
+    // Helper: create a labeled toggle row
+    const addToggle = (
+      label: string,
+      checked: boolean,
+      onChange: (v: boolean) => void
+    ) => {
+      const row = document.createElement('label');
+      row.className = 'yasgui-graph-settings-row';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = checked;
+      input.addEventListener('change', () => onChange(input.checked));
+      const span = document.createElement('span');
+      span.textContent = label;
+      row.appendChild(input);
+      row.appendChild(span);
+      panel.appendChild(row);
+    };
+
+    // Helper: create a labeled select row
+    const addSelect = <T extends string>(
+      label: string,
+      options: { value: T; label: string }[],
+      current: T,
+      onChange: (v: T) => void
+    ) => {
+      const row = document.createElement('div');
+      row.className = 'yasgui-graph-settings-row';
+      const lbl = document.createElement('span');
+      lbl.textContent = label;
+      const sel = document.createElement('select');
+      sel.className = 'yasgui-graph-settings-select';
+      options.forEach((o) => {
+        const opt = document.createElement('option');
+        opt.value = o.value;
+        opt.textContent = o.label;
+        if (o.value === current) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', () => onChange(sel.value as T));
+      row.appendChild(lbl);
+      row.appendChild(sel);
+      panel.appendChild(row);
+    };
+
+    // Re-draw graph after a setting change
+    const applyAndRedraw = () => {
+      saveSettings(this.settings);
+      // Re-draw entire graph to reflect new settings
+      this.draw();
+    };
+
+    // ── Arrows ──────────────────────────────────────────────
+    addSection('Arrows');
+    addSelect(
+      'Style',
+      [
+        { value: 'curved', label: 'Curved' },
+        { value: 'straight', label: 'Straight' },
+      ],
+      this.settings.edgeStyle,
+      (v) => { this.settings.edgeStyle = v; applyAndRedraw(); }
+    );
+
+    // ── Predicate labels ─────────────────────────────────────
+    addSection('Predicate display');
+    addSelect(
+      'Display',
+      [
+        { value: 'label', label: 'Label (prefixed URI)' },
+        { value: 'icon',  label: 'Icon / symbol' },
+        { value: 'none',  label: 'Hidden' },
+      ],
+      this.settings.predicateDisplay,
+      (v) => { this.settings.predicateDisplay = v; applyAndRedraw(); }
+    );
+
+    // ── Filter by node type ──────────────────────────────────
+    addSection('Show node types');
+    addToggle('Literals', this.settings.showLiterals, (v) => {
+      this.settings.showLiterals = v; applyAndRedraw();
+    });
+    addToggle('Classes (rdf:type objects)', this.settings.showClasses, (v) => {
+      this.settings.showClasses = v; applyAndRedraw();
+    });
+    addToggle('Blank nodes', this.settings.showBlankNodes, (v) => {
+      this.settings.showBlankNodes = v; applyAndRedraw();
+    });
+
+    // ── Additional settings ──────────────────────────────────
+    addSection('Display');
+    addToggle('Show node labels', this.settings.showNodeLabels, (v) => {
+      this.settings.showNodeLabels = v; applyAndRedraw();
+    });
+    addToggle('Enable physics', this.settings.physicsEnabled, (v) => {
+      this.settings.physicsEnabled = v; applyAndRedraw();
+    });
+    addSelect(
+      'Node size',
+      [
+        { value: 'small',  label: 'Small' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'large',  label: 'Large' },
+      ],
+      this.settings.nodeSize,
+      (v) => { this.settings.nodeSize = v; applyAndRedraw(); }
+    );
+
+    return panel;
   }
 
   /**

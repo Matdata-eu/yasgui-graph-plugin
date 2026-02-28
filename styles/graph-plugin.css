@@ -53,7 +53,72 @@
   transform: translateY(1px);
 }
 
-/* Icon styles */
+/* Settings panel */
+.yasgui-graph-settings-panel {
+  position: absolute;
+  top: 50px;
+  right: 10px;
+  z-index: 10001;
+  background: var(--yasgui-graph-button-bg, #4caf50);
+  background: var(--yasgui-bg-primary, #ffffff);
+  color: var(--yasgui-graph-text, #333333);
+  border: 1px solid var(--yasgui-border-color, #cccccc);
+  border-radius: 6px;
+  padding: 12px 14px;
+  min-width: 240px;
+  box-shadow: var(--yasgui-graph-shadow, 0 2px 8px rgba(0,0,0,0.2));
+  font-size: 13px;
+}
+
+.yasgui-graph-settings-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--yasgui-border-color, #cccccc);
+}
+
+.yasgui-graph-settings-section {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--yasgui-text-secondary, #888888);
+  margin: 10px 0 4px;
+}
+
+.yasgui-graph-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  cursor: pointer;
+}
+
+.yasgui-graph-settings-row input[type='checkbox'] {
+  cursor: pointer;
+  accent-color: var(--yasgui-accent-color, #4caf50);
+}
+
+.yasgui-graph-settings-select {
+  font-size: 12px;
+  padding: 2px 4px;
+  border: 1px solid var(--yasgui-border-color, #cccccc);
+  border-radius: 3px;
+  background: var(--yasgui-bg-primary, #ffffff);
+  color: var(--yasgui-text-primary, #333333);
+  cursor: pointer;
+  max-width: 140px;
+}
+
+/* Settings button icon alignment */
+.yasgui-graph-settings-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .yasgui-graph-icon {
   display: inline-flex;
   align-items: center;

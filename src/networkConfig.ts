@@ -1,11 +1,18 @@
 import type { NetworkOptions, ThemeColors } from './types';
+import type { GraphPluginSettings } from './settings';
 
 /**
  * Get default vis-network configuration options
  * @param themeColors - Theme-specific colors for nodes, edges, and text
+ * @param settings - Optional plugin settings to override defaults
  * @returns vis-network options object
  */
-export function getDefaultNetworkOptions(themeColors: ThemeColors): NetworkOptions {
+export function getDefaultNetworkOptions(themeColors: ThemeColors, settings?: Partial<GraphPluginSettings>): NetworkOptions {
+  const curved = !settings || settings.edgeStyle !== 'straight';
+  const nodeSizeMap = { small: 6, medium: 10, large: 16 };
+  const nodeSize = settings?.nodeSize ? nodeSizeMap[settings.nodeSize] : 10;
+  const showNodeLabels = settings?.showNodeLabels !== false;
+
   return {    
     // Configure canvas background color based on theme
     configure: {
@@ -13,7 +20,7 @@ export function getDefaultNetworkOptions(themeColors: ThemeColors): NetworkOptio
     },
     
     physics: {
-      enabled: true,
+      enabled: settings?.physicsEnabled !== false,
       stabilization: {
         enabled: true,
         iterations: 200, // Max iterations for performance (<2s target)
@@ -40,9 +47,9 @@ export function getDefaultNetworkOptions(themeColors: ThemeColors): NetworkOptio
     
     nodes: {
       shape: 'dot',
-      size: 10,
+      size: nodeSize,
       font: {
-        size: 12,
+        size: showNodeLabels ? 12 : 0,
         color: themeColors.text,
       },
       borderWidth: 1,
@@ -58,7 +65,7 @@ export function getDefaultNetworkOptions(themeColors: ThemeColors): NetworkOptio
         },
       },
       smooth: {
-        enabled: true,
+        enabled: curved,
         type: 'dynamic',
         roundness: 0.5,
       },

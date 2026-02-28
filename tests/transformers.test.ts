@@ -138,4 +138,48 @@ describe('triplesToGraph', () => {
     expect(nodes).toHaveLength(0);
     expect(edges).toHaveLength(0);
   });
+
+  it('filters out literal nodes when showLiterals is false', () => {
+    const { nodes } = triplesToGraph(sampleTriples, prefixMap, themeColors, { showLiterals: false });
+    const literalNodes = nodes.filter((n) => n.type === 'literal');
+    expect(literalNodes).toHaveLength(0);
+  });
+
+  it('removes edges connected to filtered-out nodes', () => {
+    // sampleTriples has alice–name–"Alice" (literal edge)
+    const { edges } = triplesToGraph(sampleTriples, prefixMap, themeColors, { showLiterals: false });
+    // Only the alice→bob edge should remain
+    expect(edges).toHaveLength(1);
+  });
+
+  it('filters out class nodes when showClasses is false', () => {
+    const typeTriples: RDFTriple[] = [
+      {
+        subject: 'http://example.org/alice',
+        predicate: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
+        object: { value: 'http://example.org/Person', type: 'uri' },
+      },
+    ];
+    const { nodes } = triplesToGraph(typeTriples, prefixMap, themeColors, { showClasses: false });
+    // "Person" is a class node; should be hidden. Only alice remains.
+    const classNodes = nodes.filter((n) => n.uri === 'http://example.org/Person');
+    expect(classNodes).toHaveLength(0);
+  });
+
+  it('uses icon labels when predicateDisplay is "icon" and predicate is known', () => {
+    const typeTriples: RDFTriple[] = [
+      {
+        subject: 'http://example.org/alice',
+        predicate: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
+        object: { value: 'http://example.org/Person', type: 'uri' },
+      },
+    ];
+    const { edges } = triplesToGraph(typeTriples, prefixMap, themeColors, { predicateDisplay: 'icon' });
+    expect(edges[0].label).toBe('a'); // rdf:type maps to "a"
+  });
+
+  it('hides edge labels when predicateDisplay is "none"', () => {
+    const { edges } = triplesToGraph(sampleTriples, prefixMap, themeColors, { predicateDisplay: 'none' });
+    edges.forEach((e) => expect(e.label).toBe(''));
+  });
 });

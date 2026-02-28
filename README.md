@@ -116,23 +116,76 @@ After running the query, click the **"Graph"** tab to see the visualization.
 
 ## ⚙️ Configuration
 
-The plugin uses sensible defaults but can be customized by extending the `GraphPlugin` class:
+The plugin ships with sensible defaults and stores every change in **`localStorage`** so settings survive page reloads.
+
+### Settings panel
+
+Click the **⚙ Settings** button (top-right of the graph) to open the settings panel.
+
+| Setting | Values | Default | Description |
+|---------|--------|---------|-------------|
+| **Arrow style** | Curved / Straight | Curved | Toggle between smooth curved edges and straight lines between nodes |
+| **Predicate display** | Label / Icon / Hidden | Label | Show the full prefixed URI on edges, a compact symbol/icon, or nothing |
+| **Show literals** | on / off | on | Include or exclude literal value nodes (strings, numbers, dates, …) |
+| **Show classes** | on / off | on | Include or exclude nodes that are objects of `rdf:type` triples (class nodes) |
+| **Show blank nodes** | on / off | on | Include or exclude blank nodes (`_:b0`, `_:b1`, …) |
+| **Show node labels** | on / off | on | Render the prefixed URI / literal text inside each node |
+| **Enable physics** | on / off | on | Keep the force-directed layout simulation running so nodes keep adjusting |
+| **Node size** | Small / Medium / Large | Medium | Set the radius of all nodes |
+
+### Predicate icons
+
+When *Predicate display* is set to **Icon**, each edge displays a compact symbol instead of the full label.  Symbols are defined for the 20+ most common predicates:
+
+| Predicate | Symbol |
+|-----------|--------|
+| `rdf:type` | `a` |
+| `rdfs:label` | `lbl` |
+| `rdfs:comment` | `cmt` |
+| `rdfs:subClassOf` | `⊂` |
+| `rdfs:subPropertyOf` | `⊆` |
+| `rdfs:domain` | `dom` |
+| `rdfs:range` | `rng` |
+| `rdfs:seeAlso` | `see` |
+| `rdfs:isDefinedBy` | `idb` |
+| `owl:sameAs` | `≡` |
+| `owl:equivalentClass` | `≅` |
+| `owl:inverseOf` | `⇄` |
+| `owl:disjointWith` | `≠` |
+| `skos:prefLabel` | `★` |
+| `skos:altLabel` | `☆` |
+| `skos:definition` | `def` |
+| `skos:broader` | `↑` |
+| `skos:narrower` | `↓` |
+| `skos:related` | `↔` |
+| `skos:note` | `note` |
+| `skos:exactMatch` | `≡` |
+| `skos:closeMatch` | `≈` |
+| `dcterms:title` | `ttl` |
+| `dcterms:description` | `dsc` |
+| `dcterms:created` | `crt` |
+| `dcterms:modified` | `mod` |
+| `dcterms:creator` | `by` |
+| `dcterms:subject` | `sbj` |
+| `foaf:name` | `nm` |
+| `foaf:knows` | `⟷` |
+| `foaf:member` | `mbr` |
+| `schema:name` | `nm` |
+| `schema:description` | `dsc` |
+
+For predicates not in the table the full prefixed label is used as a fallback.
+
+### Programmatic configuration
+
+You can also pass initial settings when extending the class:
 
 ```javascript
 class CustomGraphPlugin extends GraphPlugin {
   constructor(yasr) {
     super(yasr);
-  }
-  
-  // Override network options
-  getNetworkOptions() {
-    return {
-      ...super.getNetworkOptions(),
-      physics: {
-        enabled: true,
-        stabilization: { iterations: 100 } // Faster but less optimal layout
-      }
-    };
+    // Override defaults
+    this.settings.edgeStyle = 'straight';
+    this.settings.predicateDisplay = 'icon';
   }
 }
 

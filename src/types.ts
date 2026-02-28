@@ -76,6 +76,8 @@ export interface NetworkOptions {
     zoomView: boolean;
     hover: boolean;
     tooltipDelay: number;
+    hideEdgesOnDrag?: boolean;
+    hideEdgesOnZoom?: boolean;
   };
   nodes: {
     shape: string;
