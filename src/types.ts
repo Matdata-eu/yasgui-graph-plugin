@@ -133,8 +133,13 @@ export interface YasrResults {
   getBindings(): YasrBinding[];
 }
 
+export interface PluginQueryOptions {
+  acceptHeader?: string;
+}
+
 export interface Yasr {
   results: YasrResults;
   resultsEl: HTMLElement;
   getPrefixes?(): Record<string, string>;
+  executeQuery?(query: string, options?: PluginQueryOptions): Promise<any>;
 }
