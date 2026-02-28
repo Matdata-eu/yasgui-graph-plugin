@@ -4,6 +4,102 @@ import { getNodeColor } from './colorUtils';
 import { getPredicateIcon } from './predicateIcons';
 import type { GraphPluginSettings } from './settings';
 
+export const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+export const SCHEMA_IMAGE = 'https://schema.org/image';
+export const SCHEMA_ICON = 'https://schema.org/icon';
+export const RDFS_LABEL = 'http://www.w3.org/2000/01/rdf-schema#label';
+export const RDFS_SUBCLASSOF = 'http://www.w3.org/2000/01/rdf-schema#subClassOf';
+
+/** Predicates whose object nodes and edges are suppressed (they supply visuals or labels instead) */
+const SUPPRESSED_PREDICATES = new Set([SCHEMA_IMAGE, SCHEMA_ICON, RDFS_LABEL]);
+
+/**
+ * Get the rdfs:label value for a URI node.
+ * @param uri - Node URI to look up
+ * @param triples - All RDF triples
+ * @returns The label string, or undefined if not found
+ */
+export function getRdfsLabel(uri: string, triples: RDFTriple[]): string | undefined {
+  const labelTriple = triples.find((t) => t.subject === uri && t.predicate === RDFS_LABEL);
+  return labelTriple?.object.value;
+}
+
+/**
+ * Get the schema:image or schema:icon visual value for a URI node.
+ * schema:icon takes priority over schema:image.
+ * @param uri - Node URI to look up
+ * @param triples - All RDF triples
+ * @returns Object with either an icon string, an image URL, or neither
+ */
+export function getNodeVisual(uri: string, triples: RDFTriple[]): { image?: string; icon?: string } {
+  const iconTriple = triples.find((t) => t.subject === uri && t.predicate === SCHEMA_ICON);
+  if (iconTriple) return { icon: iconTriple.object.value };
+  const imageTriple = triples.find((t) => t.subject === uri && t.predicate === SCHEMA_IMAGE);
+  if (imageTriple) return { image: imageTriple.object.value };
+  return {};
+}
+
+/**
+ * Resolve the visual (image/icon) for a node in compact mode using a three-level priority:
+ *  1. The resource's own schema:image / schema:icon (highest priority)
+ *  2. The schema:image / schema:icon of each rdf:type class
+ *  3. The schema:image / schema:icon of rdfs:subClassOf superclasses (one level)
+ * @param uri - Subject URI
+ * @param triples - All RDF triples
+ * @returns Resolved visual, or empty object if none found
+ */
+export function resolveCompactVisual(uri: string, triples: RDFTriple[]): { image?: string; icon?: string } {
+  // 1. Own visual
+  const own = getNodeVisual(uri, triples);
+  if (own.icon || own.image) return own;
+
+  const typeUris = triples
+    .filter((t) => t.subject === uri && t.predicate === RDF_TYPE)
+    .map((t) => t.object.value);
+
+  // 2. Direct class visuals
+  for (const typeUri of typeUris) {
+    const classVisual = getNodeVisual(typeUri, triples);
+    if (classVisual.icon || classVisual.image) return classVisual;
+  }
+
+  // 3. Superclass visuals (one rdfs:subClassOf hop)
+  for (const typeUri of typeUris) {
+    const superClassUris = triples
+      .filter((t) => t.subject === typeUri && t.predicate === RDFS_SUBCLASSOF)
+      .map((t) => t.object.value);
+    for (const superClassUri of superClassUris) {
+      const superVisual = getNodeVisual(superClassUri, triples);
+      if (superVisual.icon || superVisual.image) return superVisual;
+    }
+  }
+
+  return {};
+}
+
+/**
+ * Append extra HTML rows to an existing tooltip HTML string.
+ * @param title - Existing tooltip HTML
+ * @param rows - Additional HTML rows to append
+ * @returns Updated tooltip HTML
+ */
+function appendTooltipRows(title: string, rows: string): string {
+  const closingTag = '</div>';
+  const idx = title.lastIndexOf(closingTag);
+  if (idx === -1) return title + rows;
+  return title.slice(0, idx) + rows + closingTag;
+}
+
+/**
+ * Build a tooltip row for a schema:image or schema:icon visual value.
+ * @param key - Row label ('Image' or 'Icon')
+ * @param value - The value to display
+ * @returns HTML row string
+ */
+function buildVisualTooltipRow(key: string, value: string): string {
+  return `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">${escapeHtml(key)}</span><span class="yasgui-tooltip-val">${escapeHtml(value)}</span></div>`;
+}
+
 /**
  * Escape HTML special characters to prevent XSS in tooltip content
  * @param str - Raw string to escape
@@ -31,7 +127,6 @@ function createCompactNodeTooltipHTML(
   triples: RDFTriple[],
   prefixMap: Map<string, string>
 ): string {
-  const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
   const isBlankNode = uri.startsWith('_:');
 
   let rows = `<div class="yasgui-tooltip-type">${isBlankNode ? 'Blank Node' : 'URI'}</div>`;
@@ -153,9 +248,9 @@ export function createNodeMap(
       });
     }
     
-    // Add object node
+    // Add object node (skip for suppressed predicates – their values become node visuals/labels, not nodes)
     const objValue = triple.object.value;
-    if (!nodeMap.has(objValue)) {
+    if (!nodeMap.has(objValue) && !SUPPRESSED_PREDICATES.has(triple.predicate)) {
       const isLiteral = triple.object.type === 'literal';
       const isBlankNode = !isLiteral && objValue.startsWith('_:');
       
@@ -221,6 +316,9 @@ export function createEdgesArray(
   const edgeSet = new Set<string>(); // For deduplication
   
   triples.forEach((triple) => {
+    // Skip suppressed predicates – they define node appearance/labels, not graph edges
+    if (SUPPRESSED_PREDICATES.has(triple.predicate)) return;
+
     const fromNode = nodeMap.get(triple.subject);
     const toNode = nodeMap.get(triple.object.value);
     
@@ -308,6 +406,49 @@ export function triplesToGraph(
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const nodeMap = createNodeMap(triples, prefixMap, themeColors, settings);
 
+  // Calculate size multiplier for icon font sizing
+  const sizeMultiplier = settings?.nodeSize === 'small' ? 0.5 : settings?.nodeSize === 'large' ? 2 : 1;
+
+  // Build subject → predicate → object-values index for O(1) per-node lookups
+  type SubjectPredicateIndex = Map<string, Map<string, string[]>>;
+  const tripleIndex: SubjectPredicateIndex = new Map();
+  for (const t of triples) {
+    if (!tripleIndex.has(t.subject)) tripleIndex.set(t.subject, new Map());
+    const sp = tripleIndex.get(t.subject)!;
+    if (!sp.has(t.predicate)) sp.set(t.predicate, []);
+    sp.get(t.predicate)!.push(t.object.value);
+  }
+
+  /** Look up the first icon or image for a URI using the pre-built index */
+  function getNodeVisualIdx(uri: string): { image?: string; icon?: string } {
+    const sp = tripleIndex.get(uri);
+    if (!sp) return {};
+    const icons = sp.get(SCHEMA_ICON);
+    if (icons?.length) return { icon: icons[0] };
+    const images = sp.get(SCHEMA_IMAGE);
+    if (images?.length) return { image: images[0] };
+    return {};
+  }
+
+  /** Resolve visual for compact mode using the pre-built index (3-level priority) */
+  function resolveCompactVisualIdx(uri: string): { image?: string; icon?: string } {
+    const own = getNodeVisualIdx(uri);
+    if (own.icon || own.image) return own;
+    const typeUris = tripleIndex.get(uri)?.get(RDF_TYPE) ?? [];
+    for (const typeUri of typeUris) {
+      const cv = getNodeVisualIdx(typeUri);
+      if (cv.icon || cv.image) return cv;
+    }
+    for (const typeUri of typeUris) {
+      const superUris = tripleIndex.get(typeUri)?.get(RDFS_SUBCLASSOF) ?? [];
+      for (const superUri of superUris) {
+        const sv = getNodeVisualIdx(superUri);
+        if (sv.icon || sv.image) return sv;
+      }
+    }
+    return {};
+  }
+  
   // In compact mode, enhance subject node tooltips with rdf:type and literal properties
   if (settings?.compactMode) {
     const subjects = new Set(triples.map((t) => t.subject));
@@ -318,6 +459,61 @@ export function triplesToGraph(
       }
     });
   }
+
+  // Apply schema:image / schema:icon visuals to nodes.
+  // In compact mode also inherit visuals from rdf:type classes and rdfs:subClassOf superclasses.
+  nodeMap.forEach((node) => {
+    if (!node.uri || node.type === 'literal') return;
+
+    const visual = settings?.compactMode
+      ? resolveCompactVisualIdx(node.uri)
+      : getNodeVisualIdx(node.uri);
+
+    // Get rdfs:label if present (O(1) via index)
+    const rdfsLabel = tripleIndex.get(node.uri)?.get(RDFS_LABEL)?.[0];
+
+    if (visual.icon) {
+      node.shape = 'text';
+      // Show icon with rdfs:label underneath if available
+      node.label = rdfsLabel ? `${visual.icon}\n${rdfsLabel}` : visual.icon;
+      // Icon nodes must always be visible regardless of showNodeLabels setting
+      // Use moderate font size (14px) for balanced icon/text appearance
+      node.font = { size: 14 * sizeMultiplier };
+      if (!settings?.compactMode) {
+        node.title = appendTooltipRows(node.title, buildVisualTooltipRow('Icon', visual.icon));
+      }
+    } else if (visual.image) {
+      // Only allow http/https URLs to avoid privacy/security risks (tracking pixels, data: URIs, etc.)
+      let imageAllowed = false;
+      try {
+        const parsed = new URL(visual.image);
+        imageAllowed = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      } catch {
+        // malformed URL – skip
+      }
+      if (imageAllowed) {
+        node.shape = 'circularImage';
+        node.image = visual.image;
+      }
+      // For images, show rdfs:label as the text label if available
+      if (rdfsLabel) {
+        node.label = rdfsLabel;
+        // Set consistent font size for image node labels
+        node.font = { size: 14 * sizeMultiplier };
+      }
+      if (!settings?.compactMode) {
+        node.title = appendTooltipRows(node.title, buildVisualTooltipRow('Image', visual.image));
+      }
+    } else if (rdfsLabel) {
+      // No visual but has rdfs:label - use it as the label
+      node.label = rdfsLabel;
+    }
+
+    // Add rdfs:label to tooltip in non-compact mode (in compact mode it's already included)
+    if (rdfsLabel && !settings?.compactMode) {
+      node.title = appendTooltipRows(node.title, buildVisualTooltipRow('rdfs:label', rdfsLabel));
+    }
+  });
 
   // Filter nodes based on settings
   const visibleNodeIds = new Set<number>();

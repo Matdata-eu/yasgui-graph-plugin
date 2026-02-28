@@ -26,6 +26,12 @@ export interface GraphNode {
   fullValue: string;
   title: string;
   size?: number;
+  /** vis-network shape override, e.g. 'circularImage' when schema:image is present */
+  shape?: string;
+  /** Image URL used when shape is 'circularImage' (from schema:image) */
+  image?: string;
+  /** Font configuration for the node label (overrides global font settings) */
+  font?: { size: number };
 }
 
 export interface GraphEdge {

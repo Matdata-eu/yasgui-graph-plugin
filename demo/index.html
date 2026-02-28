@@ -117,8 +117,9 @@
     <div class="instructions-content collapsed">
       <ul>
         <li>Click the <strong>"Graph"</strong> tab after running a CONSTRUCT or DESCRIBE query</li>
-        <li><strong>Sample queries</strong> are pre-loaded (see tabs: Basic, Ontology, Blank Nodes, Multiple Edges,
-          DESCRIBE)</li>
+        <li><strong>Sample queries</strong> are pre-loaded (see tabs: Icons & Images, Ontology, Blank Nodes, Multiple Edges,
+          DESCRIBE, Basic)</li>
+        <li><strong>Visual customization</strong>: Use <code>schema:icon</code> (emoji/text) and <code>schema:image</code> (URL) to customize node appearance</li>
         <li><strong>Navigate</strong>: Mouse wheel to zoom, drag background to pan, click "Zoom to Fit" button</li>
         <li><strong>Reorganize</strong>: Drag individual nodes to rearrange the layout</li>
         <li><strong>Inspect</strong>: Hover over nodes/edges to see full details (300ms delay)</li>
@@ -208,6 +209,10 @@
 
     // Add sample query tabs
     const tabs = [
+      { name: 'Icons & Images', query: queries.iconsAndImages },
+      { name: 'Inheritance Test', query: queries.inheritanceTest },
+      { name: 'Override Test', query: queries.overrideTest },
+      { name: 'Multiple Types Test', query: queries.multipleTypesTest },
       { name: 'Ontology', query: queries.ontology },
       { name: 'Blank Nodes', query: queries.blankNodes },
       { name: 'Multiple Edges', query: queries.multiplePredicates },

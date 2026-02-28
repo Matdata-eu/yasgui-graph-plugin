@@ -1,4 +1,4 @@
-import { createNodeMap, createEdgesArray, triplesToGraph } from '../src/transformers';
+import { createNodeMap, createEdgesArray, triplesToGraph, getNodeVisual, resolveCompactVisual, SCHEMA_IMAGE, SCHEMA_ICON, RDFS_SUBCLASSOF } from '../src/transformers';
 import type { RDFTriple, ThemeColors } from '../src/types';
 
 const themeColors: ThemeColors = {
@@ -268,5 +268,297 @@ describe('triplesToGraph', () => {
   it('hides edge labels when predicateDisplay is "none"', () => {
     const { edges } = triplesToGraph(sampleTriples, prefixMap, themeColors, { predicateDisplay: 'none' });
     edges.forEach((e) => expect(e.label).toBe(''));
+  });
+});
+
+// ── schema:image / schema:icon visual tests ──────────────────────────────────
+
+const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+
+describe('getNodeVisual', () => {
+  it('returns empty object when no schema:image or schema:icon', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: 'http://example.org/name', object: { value: 'Alice', type: 'literal' } },
+    ];
+    expect(getNodeVisual('http://example.org/alice', triples)).toEqual({});
+  });
+
+  it('returns image when schema:image is present', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/Person', predicate: SCHEMA_IMAGE, object: { value: 'https://example.com/person.png', type: 'literal' } },
+    ];
+    expect(getNodeVisual('http://example.org/Person', triples)).toEqual({ image: 'https://example.com/person.png' });
+  });
+
+  it('returns icon when schema:icon is present', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/Person', predicate: SCHEMA_ICON, object: { value: '👤', type: 'literal' } },
+    ];
+    expect(getNodeVisual('http://example.org/Person', triples)).toEqual({ icon: '👤' });
+  });
+
+  it('gives schema:icon priority over schema:image', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/Person', predicate: SCHEMA_IMAGE, object: { value: 'https://example.com/person.png', type: 'literal' } },
+      { subject: 'http://example.org/Person', predicate: SCHEMA_ICON,  object: { value: '👤', type: 'literal' } },
+    ];
+    expect(getNodeVisual('http://example.org/Person', triples)).toEqual({ icon: '👤' });
+  });
+});
+
+describe('resolveCompactVisual', () => {
+  it('returns own schema:image in preference to class image', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: RDF_TYPE, object: { value: 'http://example.org/Person', type: 'uri' } },
+      { subject: 'http://example.org/alice',  predicate: SCHEMA_IMAGE, object: { value: 'https://example.com/alice.png', type: 'literal' } },
+      { subject: 'http://example.org/Person', predicate: SCHEMA_IMAGE, object: { value: 'https://example.com/person.png', type: 'literal' } },
+    ];
+    expect(resolveCompactVisual('http://example.org/alice', triples)).toEqual({ image: 'https://example.com/alice.png' });
+  });
+
+  it('falls back to rdf:type class schema:image when resource has no own visual', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: RDF_TYPE, object: { value: 'http://example.org/Person', type: 'uri' } },
+      { subject: 'http://example.org/Person', predicate: SCHEMA_IMAGE, object: { value: 'https://example.com/person.png', type: 'literal' } },
+    ];
+    expect(resolveCompactVisual('http://example.org/alice', triples)).toEqual({ image: 'https://example.com/person.png' });
+  });
+
+  it('falls back to rdfs:subClassOf superclass schema:image', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice',  predicate: RDF_TYPE,        object: { value: 'http://example.org/Employee', type: 'uri' } },
+      { subject: 'http://example.org/Employee', predicate: RDFS_SUBCLASSOF, object: { value: 'http://example.org/Person', type: 'uri' } },
+      { subject: 'http://example.org/Person', predicate: SCHEMA_IMAGE,    object: { value: 'https://example.com/person.png', type: 'literal' } },
+    ];
+    expect(resolveCompactVisual('http://example.org/alice', triples)).toEqual({ image: 'https://example.com/person.png' });
+  });
+
+  it('returns empty object when no visual anywhere in the hierarchy', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: RDF_TYPE, object: { value: 'http://example.org/Person', type: 'uri' } },
+    ];
+    expect(resolveCompactVisual('http://example.org/alice', triples)).toEqual({});
+  });
+});
+
+describe('triplesToGraph – schema:image / schema:icon integration', () => {
+  it('does not create a literal node for schema:image', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/Person', predicate: SCHEMA_IMAGE, object: { value: 'https://example.com/person.png', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors);
+    const literalNodes = nodes.filter((n) => n.type === 'literal');
+    expect(literalNodes).toHaveLength(0);
+  });
+
+  it('does not create an edge for schema:image', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/Person', predicate: SCHEMA_IMAGE, object: { value: 'https://example.com/person.png', type: 'literal' } },
+    ];
+    const { edges } = triplesToGraph(triples, prefixMap, themeColors);
+    expect(edges).toHaveLength(0);
+  });
+
+  it('does not create a literal node for schema:icon', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/Person', predicate: SCHEMA_ICON, object: { value: '👤', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors);
+    const literalNodes = nodes.filter((n) => n.type === 'literal');
+    expect(literalNodes).toHaveLength(0);
+  });
+
+  it('sets circularImage shape and image URL on a node with schema:image', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
+      { subject: 'http://example.org/alice', predicate: SCHEMA_IMAGE, object: { value: 'https://example.com/alice.png', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors);
+    const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(alice?.shape).toBe('circularImage');
+    expect(alice?.image).toBe('https://example.com/alice.png');
+  });
+
+  it('does not apply circularImage for non-http/https schema:image URLs', () => {
+    const nonHttpUrls = [
+      'data:image/png;base64,abc',
+      'ftp://example.com/image.png',
+      'file:///etc/passwd',
+      'javascript:alert(1)',
+      'not-a-url',
+    ];
+    for (const url of nonHttpUrls) {
+      const triples: RDFTriple[] = [
+        { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
+        { subject: 'http://example.org/alice', predicate: SCHEMA_IMAGE, object: { value: url, type: 'literal' } },
+      ];
+      const { nodes } = triplesToGraph(triples, prefixMap, themeColors);
+      const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+      expect(alice?.shape).not.toBe('circularImage');
+      expect(alice?.image).toBeUndefined();
+    }
+  });
+
+  it('sets shape to "text" and icon as node label when schema:icon is present', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
+      { subject: 'http://example.org/alice', predicate: SCHEMA_ICON, object: { value: '🧑', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors);
+    const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(alice?.shape).toBe('text');
+    expect(alice?.label).toBe('🧑');
+  });
+
+  it('includes Image value in non-compact tooltip', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
+      { subject: 'http://example.org/alice', predicate: SCHEMA_IMAGE, object: { value: 'https://example.com/alice.png', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors);
+    const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(alice?.title).toContain('Image');
+    expect(alice?.title).toContain('https://example.com/alice.png');
+  });
+
+  it('in compact mode inherits schema:image from rdf:type class', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice',  predicate: RDF_TYPE,    object: { value: 'http://example.org/Person', type: 'uri' } },
+      { subject: 'http://example.org/Person', predicate: SCHEMA_IMAGE, object: { value: 'https://example.com/person.png', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors, { compactMode: true });
+    const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(alice?.shape).toBe('circularImage');
+    expect(alice?.image).toBe('https://example.com/person.png');
+  });
+
+  it('in compact mode inherits schema:icon from rdf:type class', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice',  predicate: RDF_TYPE,   object: { value: 'http://example.org/Person', type: 'uri' } },
+      { subject: 'http://example.org/Person', predicate: SCHEMA_ICON, object: { value: '👤', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors, { compactMode: true });
+    const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(alice?.shape).toBe('text');
+    expect(alice?.label).toBe('👤');
+  });
+
+  it('in compact mode own schema:image overrides class schema:image', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice',  predicate: RDF_TYPE,    object: { value: 'http://example.org/Person', type: 'uri' } },
+      { subject: 'http://example.org/alice',  predicate: SCHEMA_IMAGE, object: { value: 'https://example.com/alice.png', type: 'literal' } },
+      { subject: 'http://example.org/Person', predicate: SCHEMA_IMAGE, object: { value: 'https://example.com/person.png', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors, { compactMode: true });
+    const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(alice?.image).toBe('https://example.com/alice.png');
+  });
+
+  it('in compact mode inherits schema:image from rdfs:subClassOf superclass', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice',    predicate: RDF_TYPE,        object: { value: 'http://example.org/Employee', type: 'uri' } },
+      { subject: 'http://example.org/Employee', predicate: RDFS_SUBCLASSOF, object: { value: 'http://example.org/Person', type: 'uri' } },
+      { subject: 'http://example.org/Person',   predicate: SCHEMA_IMAGE,    object: { value: 'https://example.com/person.png', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors, { compactMode: true });
+    const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(alice?.shape).toBe('circularImage');
+    expect(alice?.image).toBe('https://example.com/person.png');
+  });
+
+  it('uses rdfs:label as node label when present (no visual)', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
+      { subject: 'http://example.org/alice', predicate: 'http://www.w3.org/2000/01/rdf-schema#label', object: { value: 'Alice Smith', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors);
+    const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(alice?.label).toBe('Alice Smith');
+  });
+
+  it('combines schema:icon with rdfs:label when both present', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
+      { subject: 'http://example.org/alice', predicate: SCHEMA_ICON, object: { value: '🧑', type: 'literal' } },
+      { subject: 'http://example.org/alice', predicate: 'http://www.w3.org/2000/01/rdf-schema#label', object: { value: 'Alice', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors);
+    const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(alice?.shape).toBe('text');
+    expect(alice?.label).toBe('🧑\nAlice');
+    expect(alice?.font?.size).toBe(14);
+  });
+
+  it('uses rdfs:label with schema:image', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
+      { subject: 'http://example.org/alice', predicate: SCHEMA_IMAGE, object: { value: 'https://example.com/alice.png', type: 'literal' } },
+      { subject: 'http://example.org/alice', predicate: 'http://www.w3.org/2000/01/rdf-schema#label', object: { value: 'Alice', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors);
+    const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(alice?.shape).toBe('circularImage');
+    expect(alice?.image).toBe('https://example.com/alice.png');
+    expect(alice?.label).toBe('Alice');
+    expect(alice?.font?.size).toBe(14);
+  });
+
+  it('in compact mode shows rdfs:label with inherited schema:icon', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice',  predicate: RDF_TYPE,   object: { value: 'http://example.org/Person', type: 'uri' } },
+      { subject: 'http://example.org/Person', predicate: SCHEMA_ICON, object: { value: '👤', type: 'literal' } },
+      { subject: 'http://example.org/alice',  predicate: 'http://www.w3.org/2000/01/rdf-schema#label', object: { value: 'Alice', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors, { compactMode: true });
+    const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(alice?.shape).toBe('text');
+    expect(alice?.label).toBe('👤\nAlice');
+    expect(alice?.font?.size).toBe(14);
+  });
+
+  it('rdfs:label does not create a separate node', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
+      { subject: 'http://example.org/alice', predicate: 'http://www.w3.org/2000/01/rdf-schema#label', object: { value: 'Alice Smith', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors);
+    // Should only have 2 nodes: alice and bob, not a third one for the label
+    expect(nodes.length).toBe(2);
+    expect(nodes.every(n => n.fullValue !== 'Alice Smith')).toBe(true);
+  });
+
+  it('icon nodes have explicit font size so they remain visible when showNodeLabels is false', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
+      { subject: 'http://example.org/alice', predicate: SCHEMA_ICON, object: { value: '🧑', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors, { showNodeLabels: false });
+    const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    // Icon nodes must have explicit font sizing to remain visible regardless of global showNodeLabels setting
+    expect(alice?.shape).toBe('text');
+    expect(alice?.font).toBeDefined();
+    expect(alice?.font?.size).toBeGreaterThan(0);
+  });
+
+  it('icon nodes scale with nodeSize setting', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
+      { subject: 'http://example.org/alice', predicate: SCHEMA_ICON, object: { value: '🧑', type: 'literal' } },
+    ];
+    
+    // Small size: 14 * 0.5 = 7
+    const small = triplesToGraph(triples, prefixMap, themeColors, { nodeSize: 'small' });
+    const aliceSmall = small.nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(aliceSmall?.font?.size).toBe(7);
+    
+    // Medium size: 14 * 1 = 14
+    const medium = triplesToGraph(triples, prefixMap, themeColors, { nodeSize: 'medium' });
+    const aliceMedium = medium.nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(aliceMedium?.font?.size).toBe(14);
+    
+    // Large size: 14 * 2 = 28
+    const large = triplesToGraph(triples, prefixMap, themeColors, { nodeSize: 'large' });
+    const aliceLarge = large.nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(aliceLarge?.font?.size).toBe(28);
   });
 });
