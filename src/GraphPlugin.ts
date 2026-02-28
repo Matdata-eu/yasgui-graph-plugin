@@ -625,16 +625,10 @@ class GraphPlugin {
       (v) => { this.settings.predicateDisplay = v; applyAndRedraw(); }
     );
 
-    // ── Filter by node type ──────────────────────────────────
-    addSection('Show node types');
-    addToggle('Literals', this.settings.showLiterals, (v) => {
-      this.settings.showLiterals = v; applyAndRedraw();
-    });
-    addToggle('Classes (rdf:type objects)', this.settings.showClasses, (v) => {
-      this.settings.showClasses = v; applyAndRedraw();
-    });
-    addToggle('Blank nodes', this.settings.showBlankNodes, (v) => {
-      this.settings.showBlankNodes = v; applyAndRedraw();
+    // ── Compact mode ─────────────────────────────────────────
+    addSection('Compact mode');
+    addToggle('Compact mode', this.settings.compactMode, (v) => {
+      this.settings.compactMode = v; applyAndRedraw();
     });
 
     // ── Additional settings ──────────────────────────────────

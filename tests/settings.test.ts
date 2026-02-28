@@ -25,10 +25,8 @@ describe('DEFAULT_SETTINGS', () => {
     expect(DEFAULT_SETTINGS.edgeStyle).toBe('curved');
   });
 
-  it('shows all node types by default', () => {
-    expect(DEFAULT_SETTINGS.showLiterals).toBe(true);
-    expect(DEFAULT_SETTINGS.showClasses).toBe(true);
-    expect(DEFAULT_SETTINGS.showBlankNodes).toBe(true);
+  it('uses compact mode off by default', () => {
+    expect(DEFAULT_SETTINGS.compactMode).toBe(false);
   });
 
   it('uses icon mode for predicate display by default', () => {
@@ -59,7 +57,7 @@ describe('loadSettings', () => {
     const settings = loadSettings();
     expect(settings.edgeStyle).toBe('straight');
     // Other fields should keep their defaults
-    expect(settings.showLiterals).toBe(DEFAULT_SETTINGS.showLiterals);
+    expect(settings.compactMode).toBe(DEFAULT_SETTINGS.compactMode);
   });
 
   it('returns defaults when localStorage contains invalid JSON', () => {
@@ -83,9 +81,7 @@ describe('saveSettings', () => {
   it('round-trips all fields correctly', () => {
     const modified: GraphPluginSettings = {
       edgeStyle: 'straight',
-      showLiterals: false,
-      showClasses: false,
-      showBlankNodes: false,
+      compactMode: true,
       predicateDisplay: 'icon',
       showNodeLabels: false,
       physicsEnabled: false,

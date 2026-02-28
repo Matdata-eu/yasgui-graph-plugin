@@ -19,6 +19,43 @@ function escapeHtml(str: string): string {
 }
 
 /**
+ * Build an HTML tooltip for a URI node in compact mode.
+ * Includes the full URI, all rdf:type values, and all datatype (literal) properties.
+ * @param uri - Full URI of the node
+ * @param triples - All RDF triples (used to look up type and literal properties)
+ * @param prefixMap - Namespace to prefix mappings
+ * @returns HTML string for use as vis-network title
+ */
+function createCompactNodeTooltipHTML(
+  uri: string,
+  triples: RDFTriple[],
+  prefixMap: Map<string, string>
+): string {
+  const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+
+  let rows = `<div class="yasgui-tooltip-type">URI</div>`;
+  rows += `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">Full URI</span><span class="yasgui-tooltip-val">${escapeHtml(uri)}</span></div>`;
+
+  // rdf:type values
+  triples
+    .filter((t) => t.subject === uri && t.predicate === RDF_TYPE)
+    .forEach((t) => {
+      const typeLabel = applyPrefix(t.object.value, prefixMap);
+      rows += `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">rdf:type</span><span class="yasgui-tooltip-val">${escapeHtml(typeLabel)}</span></div>`;
+    });
+
+  // Datatype (literal) properties
+  triples
+    .filter((t) => t.subject === uri && t.object.type === 'literal')
+    .forEach((t) => {
+      const predLabel = applyPrefix(t.predicate, prefixMap);
+      rows += `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">${escapeHtml(predLabel)}</span><span class="yasgui-tooltip-val">${escapeHtml(t.object.value)}</span></div>`;
+    });
+
+  return `<div class="yasgui-graph-tooltip">${rows}</div>`;
+}
+
+/**
  * Build an HTML tooltip string for a graph node
  * @param nodeType - 'uri', 'literal', or 'bnode'
  * @param value - Full value of the node
@@ -229,22 +266,25 @@ function isNodeVisible(
   triples: RDFTriple[],
   settings: Partial<GraphPluginSettings>
 ): boolean {
-  // Blank nodes
+  // Blank nodes are always visible
   if (node.uri && node.uri.startsWith('_:')) {
-    return settings.showBlankNodes !== false;
+    return true;
   }
-  // Literal nodes
+  if (!settings.compactMode) {
+    return true;
+  }
+  // In compact mode: hide literal nodes
   if (node.type === 'literal') {
-    return settings.showLiterals !== false;
+    return false;
   }
-  // Class nodes (objects of rdf:type triples)
+  // In compact mode: hide class nodes (objects of rdf:type triples)
   const isClass = triples.some(
     (t) =>
       t.predicate === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' &&
       t.object.value === node.uri
   );
   if (isClass) {
-    return settings.showClasses !== false;
+    return false;
   }
   return true;
 }
@@ -264,6 +304,17 @@ export function triplesToGraph(
   settings?: Partial<GraphPluginSettings>
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const nodeMap = createNodeMap(triples, prefixMap, themeColors, settings);
+
+  // In compact mode, enhance URI subject node tooltips with rdf:type and literal properties
+  if (settings?.compactMode) {
+    const subjectUris = new Set(triples.map((t) => t.subject).filter((s) => !s.startsWith('_:')));
+    subjectUris.forEach((uri) => {
+      const node = nodeMap.get(uri);
+      if (node) {
+        node.title = createCompactNodeTooltipHTML(uri, triples, prefixMap);
+      }
+    });
+  }
 
   // Filter nodes based on settings
   const visibleNodeIds = new Set<number>();

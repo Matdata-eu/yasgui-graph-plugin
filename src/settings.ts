@@ -6,12 +6,8 @@
 export interface GraphPluginSettings {
   /** Edge rendering style: smooth curves or straight lines */
   edgeStyle: 'curved' | 'straight';
-  /** Show literal value nodes (strings, numbers, dates, …) */
-  showLiterals: boolean;
-  /** Show class nodes (objects of rdf:type triples) */
-  showClasses: boolean;
-  /** Show blank nodes */
-  showBlankNodes: boolean;
+  /** Compact mode: hide literal and class nodes; show rdf:type and datatype properties in tooltips instead */
+  compactMode: boolean;
   /** How predicates are displayed on edges: full prefixed label, short icon, or hidden */
   predicateDisplay: 'label' | 'icon' | 'none';
   /** Render text labels inside nodes */
@@ -24,9 +20,7 @@ export interface GraphPluginSettings {
 
 export const DEFAULT_SETTINGS: GraphPluginSettings = {
   edgeStyle: 'curved',
-  showLiterals: true,
-  showClasses: true,
-  showBlankNodes: true,
+  compactMode: false,
   predicateDisplay: 'icon',
   showNodeLabels: true,
   physicsEnabled: true,

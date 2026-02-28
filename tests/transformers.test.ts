@@ -139,20 +139,20 @@ describe('triplesToGraph', () => {
     expect(edges).toHaveLength(0);
   });
 
-  it('filters out literal nodes when showLiterals is false', () => {
-    const { nodes } = triplesToGraph(sampleTriples, prefixMap, themeColors, { showLiterals: false });
+  it('filters out literal nodes when compactMode is true', () => {
+    const { nodes } = triplesToGraph(sampleTriples, prefixMap, themeColors, { compactMode: true });
     const literalNodes = nodes.filter((n) => n.type === 'literal');
     expect(literalNodes).toHaveLength(0);
   });
 
-  it('removes edges connected to filtered-out nodes', () => {
+  it('removes edges connected to filtered-out nodes in compact mode', () => {
     // sampleTriples has alice–name–"Alice" (literal edge)
-    const { edges } = triplesToGraph(sampleTriples, prefixMap, themeColors, { showLiterals: false });
+    const { edges } = triplesToGraph(sampleTriples, prefixMap, themeColors, { compactMode: true });
     // Only the alice→bob edge should remain
     expect(edges).toHaveLength(1);
   });
 
-  it('filters out class nodes when showClasses is false', () => {
+  it('filters out class nodes when compactMode is true', () => {
     const typeTriples: RDFTriple[] = [
       {
         subject: 'http://example.org/alice',
@@ -160,10 +160,44 @@ describe('triplesToGraph', () => {
         object: { value: 'http://example.org/Person', type: 'uri' },
       },
     ];
-    const { nodes } = triplesToGraph(typeTriples, prefixMap, themeColors, { showClasses: false });
+    const { nodes } = triplesToGraph(typeTriples, prefixMap, themeColors, { compactMode: true });
     // "Person" is a class node; should be hidden. Only alice remains.
     const classNodes = nodes.filter((n) => n.uri === 'http://example.org/Person');
     expect(classNodes).toHaveLength(0);
+  });
+
+  it('always shows blank nodes even when compactMode is true', () => {
+    const bnodeTriples: RDFTriple[] = [
+      {
+        subject: '_:b0',
+        predicate: 'http://example.org/name',
+        object: { value: 'Blank', type: 'literal' },
+      },
+    ];
+    const { nodes } = triplesToGraph(bnodeTriples, prefixMap, themeColors, { compactMode: true });
+    const blankNode = nodes.find((n) => n.uri === '_:b0');
+    expect(blankNode).toBeDefined();
+  });
+
+  it('adds rdf:type and literal properties to compact tooltip', () => {
+    const typeTriples: RDFTriple[] = [
+      {
+        subject: 'http://example.org/alice',
+        predicate: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
+        object: { value: 'http://example.org/Person', type: 'uri' },
+      },
+      {
+        subject: 'http://example.org/alice',
+        predicate: 'http://example.org/name',
+        object: { value: 'Alice', type: 'literal' },
+      },
+    ];
+    const { nodes } = triplesToGraph(typeTriples, prefixMap, themeColors, { compactMode: true });
+    const aliceNode = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(aliceNode).toBeDefined();
+    expect(aliceNode?.title).toContain('rdf:type');
+    expect(aliceNode?.title).toContain('ex:Person');
+    expect(aliceNode?.title).toContain('Alice');
   });
 
   it('uses icon labels when predicateDisplay is "icon" and predicate is known', () => {
