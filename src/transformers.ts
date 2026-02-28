@@ -7,10 +7,22 @@ import type { GraphPluginSettings } from './settings';
 export const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
 export const SCHEMA_IMAGE = 'https://schema.org/image';
 export const SCHEMA_ICON = 'https://schema.org/icon';
+export const RDFS_LABEL = 'http://www.w3.org/2000/01/rdf-schema#label';
 export const RDFS_SUBCLASSOF = 'http://www.w3.org/2000/01/rdf-schema#subClassOf';
 
-/** Predicates that supply node visuals; their object nodes and edges are suppressed */
-const VISUAL_PREDICATES = new Set([SCHEMA_IMAGE, SCHEMA_ICON]);
+/** Predicates that supply node visuals or labels; their object nodes and edges are suppressed */
+const VISUAL_PREDICATES = new Set([SCHEMA_IMAGE, SCHEMA_ICON, RDFS_LABEL]);
+
+/**
+ * Get the rdfs:label value for a URI node.
+ * @param uri - Node URI to look up
+ * @param triples - All RDF triples
+ * @returns The label string, or undefined if not found
+ */
+export function getRdfsLabel(uri: string, triples: RDFTriple[]): string | undefined {
+  const labelTriple = triples.find((t) => t.subject === uri && t.predicate === RDFS_LABEL);
+  return labelTriple?.object.value;
+}
 
 /**
  * Get the schema:image or schema:icon visual value for a URI node.
@@ -414,18 +426,29 @@ export function triplesToGraph(
       ? resolveCompactVisual(node.uri, triples)
       : getNodeVisual(node.uri, triples);
 
+    // Get rdfs:label if present
+    const rdfsLabel = getRdfsLabel(node.uri, triples);
+    
     if (visual.icon) {
       node.shape = 'text';
-      node.label = visual.icon;
+      // Show icon with rdfs:label underneath if available
+      node.label = rdfsLabel ? `${visual.icon}\n${rdfsLabel}` : visual.icon;
       if (!settings?.compactMode) {
         node.title = appendTooltipRows(node.title, buildVisualTooltipRow('Icon', visual.icon));
       }
     } else if (visual.image) {
       node.shape = 'circularImage';
       node.image = visual.image;
+      // For images, show rdfs:label as the text label if available
+      if (rdfsLabel) {
+        node.label = rdfsLabel;
+      }
       if (!settings?.compactMode) {
         node.title = appendTooltipRows(node.title, buildVisualTooltipRow('Image', visual.image));
       }
+    } else if (rdfsLabel) {
+      // No visual but has rdfs:label - use it as the label
+      node.label = rdfsLabel;
     }
   });
 
