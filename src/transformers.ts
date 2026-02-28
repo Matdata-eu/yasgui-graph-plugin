@@ -10,8 +10,8 @@ export const SCHEMA_ICON = 'https://schema.org/icon';
 export const RDFS_LABEL = 'http://www.w3.org/2000/01/rdf-schema#label';
 export const RDFS_SUBCLASSOF = 'http://www.w3.org/2000/01/rdf-schema#subClassOf';
 
-/** Predicates that supply node visuals or labels; their object nodes and edges are suppressed */
-const VISUAL_PREDICATES = new Set([SCHEMA_IMAGE, SCHEMA_ICON, RDFS_LABEL]);
+/** Predicates whose object nodes and edges are suppressed (they supply visuals or labels instead) */
+const SUPPRESSED_PREDICATES = new Set([SCHEMA_IMAGE, SCHEMA_ICON, RDFS_LABEL]);
 
 /**
  * Get the rdfs:label value for a URI node.
@@ -248,9 +248,9 @@ export function createNodeMap(
       });
     }
     
-    // Add object node (skip for visual predicates – their values become node visuals, not nodes)
+    // Add object node (skip for suppressed predicates – their values become node visuals/labels, not nodes)
     const objValue = triple.object.value;
-    if (!nodeMap.has(objValue) && !VISUAL_PREDICATES.has(triple.predicate)) {
+    if (!nodeMap.has(objValue) && !SUPPRESSED_PREDICATES.has(triple.predicate)) {
       const isLiteral = triple.object.type === 'literal';
       const isBlankNode = !isLiteral && objValue.startsWith('_:');
       
@@ -316,8 +316,8 @@ export function createEdgesArray(
   const edgeSet = new Set<string>(); // For deduplication
   
   triples.forEach((triple) => {
-    // Skip visual predicates – they define node appearance, not graph edges
-    if (VISUAL_PREDICATES.has(triple.predicate)) return;
+    // Skip suppressed predicates – they define node appearance/labels, not graph edges
+    if (SUPPRESSED_PREDICATES.has(triple.predicate)) return;
 
     const fromNode = nodeMap.get(triple.subject);
     const toNode = nodeMap.get(triple.object.value);
@@ -408,6 +408,46 @@ export function triplesToGraph(
 
   // Calculate size multiplier for icon font sizing
   const sizeMultiplier = settings?.nodeSize === 'small' ? 0.5 : settings?.nodeSize === 'large' ? 2 : 1;
+
+  // Build subject → predicate → object-values index for O(1) per-node lookups
+  type SubjectPredicateIndex = Map<string, Map<string, string[]>>;
+  const tripleIndex: SubjectPredicateIndex = new Map();
+  for (const t of triples) {
+    if (!tripleIndex.has(t.subject)) tripleIndex.set(t.subject, new Map());
+    const sp = tripleIndex.get(t.subject)!;
+    if (!sp.has(t.predicate)) sp.set(t.predicate, []);
+    sp.get(t.predicate)!.push(t.object.value);
+  }
+
+  /** Look up the first icon or image for a URI using the pre-built index */
+  function getNodeVisualIdx(uri: string): { image?: string; icon?: string } {
+    const sp = tripleIndex.get(uri);
+    if (!sp) return {};
+    const icons = sp.get(SCHEMA_ICON);
+    if (icons?.length) return { icon: icons[0] };
+    const images = sp.get(SCHEMA_IMAGE);
+    if (images?.length) return { image: images[0] };
+    return {};
+  }
+
+  /** Resolve visual for compact mode using the pre-built index (3-level priority) */
+  function resolveCompactVisualIdx(uri: string): { image?: string; icon?: string } {
+    const own = getNodeVisualIdx(uri);
+    if (own.icon || own.image) return own;
+    const typeUris = tripleIndex.get(uri)?.get(RDF_TYPE) ?? [];
+    for (const typeUri of typeUris) {
+      const cv = getNodeVisualIdx(typeUri);
+      if (cv.icon || cv.image) return cv;
+    }
+    for (const typeUri of typeUris) {
+      const superUris = tripleIndex.get(typeUri)?.get(RDFS_SUBCLASSOF) ?? [];
+      for (const superUri of superUris) {
+        const sv = getNodeVisualIdx(superUri);
+        if (sv.icon || sv.image) return sv;
+      }
+    }
+    return {};
+  }
   
   // In compact mode, enhance subject node tooltips with rdf:type and literal properties
   if (settings?.compactMode) {
@@ -426,12 +466,12 @@ export function triplesToGraph(
     if (!node.uri || node.type === 'literal') return;
 
     const visual = settings?.compactMode
-      ? resolveCompactVisual(node.uri, triples)
-      : getNodeVisual(node.uri, triples);
+      ? resolveCompactVisualIdx(node.uri)
+      : getNodeVisualIdx(node.uri);
 
-    // Get rdfs:label if present
-    const rdfsLabel = getRdfsLabel(node.uri, triples);
-    
+    // Get rdfs:label if present (O(1) via index)
+    const rdfsLabel = tripleIndex.get(node.uri)?.get(RDFS_LABEL)?.[0];
+
     if (visual.icon) {
       node.shape = 'text';
       // Show icon with rdfs:label underneath if available
@@ -443,8 +483,18 @@ export function triplesToGraph(
         node.title = appendTooltipRows(node.title, buildVisualTooltipRow('Icon', visual.icon));
       }
     } else if (visual.image) {
-      node.shape = 'circularImage';
-      node.image = visual.image;
+      // Only allow http/https URLs to avoid privacy/security risks (tracking pixels, data: URIs, etc.)
+      let imageAllowed = false;
+      try {
+        const parsed = new URL(visual.image);
+        imageAllowed = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      } catch {
+        // malformed URL – skip
+      }
+      if (imageAllowed) {
+        node.shape = 'circularImage';
+        node.image = visual.image;
+      }
       // For images, show rdfs:label as the text label if available
       if (rdfsLabel) {
         node.label = rdfsLabel;
@@ -456,7 +506,7 @@ export function triplesToGraph(
       // No visual but has rdfs:label - use it as the label
       node.label = rdfsLabel;
     }
-    
+
     // Add rdfs:label to tooltip in non-compact mode (in compact mode it's already included)
     if (rdfsLabel && !settings?.compactMode) {
       node.title = appendTooltipRows(node.title, buildVisualTooltipRow('rdfs:label', rdfsLabel));

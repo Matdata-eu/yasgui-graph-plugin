@@ -379,6 +379,26 @@ describe('triplesToGraph – schema:image / schema:icon integration', () => {
     expect(alice?.image).toBe('https://example.com/alice.png');
   });
 
+  it('does not apply circularImage for non-http/https schema:image URLs', () => {
+    const nonHttpUrls = [
+      'data:image/png;base64,abc',
+      'ftp://example.com/image.png',
+      'file:///etc/passwd',
+      'javascript:alert(1)',
+      'not-a-url',
+    ];
+    for (const url of nonHttpUrls) {
+      const triples: RDFTriple[] = [
+        { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
+        { subject: 'http://example.org/alice', predicate: SCHEMA_IMAGE, object: { value: url, type: 'literal' } },
+      ];
+      const { nodes } = triplesToGraph(triples, prefixMap, themeColors);
+      const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+      expect(alice?.shape).not.toBe('circularImage');
+      expect(alice?.image).toBeUndefined();
+    }
+  });
+
   it('sets shape to "text" and icon as node label when schema:icon is present', () => {
     const triples: RDFTriple[] = [
       { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },

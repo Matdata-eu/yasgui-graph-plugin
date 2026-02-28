@@ -185,7 +185,7 @@ Any URI node can display an image or an icon instead of (or in addition to) the 
 | `schema:image` (`https://schema.org/image`) | URL literal or URI | Node is rendered as a circular image |
 | `schema:icon` (`https://schema.org/icon`) | emoji / short string | The string is used as the node's label |
 
-`schema:icon` takes priority over `schema:image`.  The property triple is **not** rendered as a separate node or edge but its value **is** shown in the node tooltip.
+`schema:icon` takes priority over `schema:image`. The corresponding `schema:icon`/`schema:image` triples are **not** rendered as separate nodes or edges, but their values **are** shown in the node tooltip. Similarly, any `rdfs:label` triple is consumed to determine the node's displayed label and is never drawn as an edge, even when predicate display is enabled.
 
 ### Example – inline image on a resource
 
