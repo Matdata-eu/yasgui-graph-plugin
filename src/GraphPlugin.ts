@@ -34,7 +34,6 @@ class GraphPlugin {
   private settings: GraphPluginSettings;
   private settingsPanelOpen: boolean = false;
   private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
-  private expandedNodes: Set<string> = new Set();
   private expansionAbortController: AbortController | null = null;
   private uriToNodeId: Map<string, number> = new Map();
 
@@ -203,10 +202,12 @@ class GraphPlugin {
       // Setup double-click to expand nodes
       this.setupNodeExpansion();
       
-      // Build URI→node-ID map for incremental expansion merges
+      // Build URI→node-ID map for incremental expansion merges (URI nodes only)
       this.uriToNodeId = new Map();
       this.nodesDataSet.get().forEach((node: any) => {
-        this.uriToNodeId.set(node.fullValue, node.id);
+        if (node.uri) {
+          this.uriToNodeId.set(node.uri, node.id);
+        }
       });
       
       // Setup theme change observer
@@ -722,22 +723,48 @@ class GraphPlugin {
     const controller = new AbortController();
     this.expansionAbortController = controller;
 
-    // Visual feedback: highlight border while loading
+    // Capture original node appearance so we can restore it precisely
     const nodeId = this.uriToNodeId.get(uri);
+    let originalColor: any = undefined;
+    let originalBorderWidth: number | undefined = undefined;
     if (nodeId !== undefined) {
-      this.nodesDataSet.update({ id: nodeId, borderWidth: LOADING_BORDER_WIDTH, color: { border: LOADING_BORDER_COLOR } });
+      const node = this.nodesDataSet.get(nodeId);
+      if (node) {
+        originalColor = node.color;
+        originalBorderWidth = node.borderWidth;
+      }
+      this.nodesDataSet.update({
+        id: nodeId,
+        borderWidth: LOADING_BORDER_WIDTH,
+        color: typeof originalColor === 'object' && originalColor !== null
+          ? { ...originalColor, border: LOADING_BORDER_COLOR }
+          : { border: LOADING_BORDER_COLOR, background: originalColor ?? undefined },
+      });
     }
+
+    const restoreNode = (borderWidth: number) => {
+      if (nodeId !== undefined) {
+        this.nodesDataSet.update({ id: nodeId, borderWidth, color: originalColor });
+      }
+    };
 
     try {
       const response = await this.yasr.executeQuery(`DESCRIBE <${uri}>`, {
         acceptHeader: 'application/sparql-results+json',
+        signal: controller.signal,
       });
 
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        restoreNode(originalBorderWidth ?? DEFAULT_BORDER_WIDTH);
+        return;
+      }
 
       const newTriples = await parseBackgroundQueryResponse(response);
 
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        restoreNode(originalBorderWidth ?? DEFAULT_BORDER_WIDTH);
+        return;
+      }
 
       // Deduplicate against existing triples
       const existingKeys = new Set(
@@ -753,17 +780,15 @@ class GraphPlugin {
       }
 
       // Mark as expanded: restore border with a thicker width to signal expansion
-      this.expandedNodes.add(uri);
-      if (nodeId !== undefined) {
-        this.nodesDataSet.update({ id: nodeId, borderWidth: EXPANDED_BORDER_WIDTH, color: { border: undefined } });
-      }
+      restoreNode(EXPANDED_BORDER_WIDTH);
     } catch (error: any) {
-      if (error?.name === 'AbortError') return;
+      if (error?.name === 'AbortError') {
+        restoreNode(originalBorderWidth ?? DEFAULT_BORDER_WIDTH);
+        return;
+      }
       console.error('yasgui-graph-plugin: error expanding node', uri, error);
       // Restore original node appearance on error
-      if (nodeId !== undefined) {
-        this.nodesDataSet.update({ id: nodeId, borderWidth: DEFAULT_BORDER_WIDTH, color: { border: undefined } });
-      }
+      restoreNode(originalBorderWidth ?? DEFAULT_BORDER_WIDTH);
     }
   }
 
@@ -794,9 +819,11 @@ class GraphPlugin {
 
     if (nodesToAdd.length > 0) {
       this.nodesDataSet.add(nodesToAdd);
-      // Update uriToNodeId map with newly added nodes
-      nodesToAdd.forEach((n) => {
-        this.uriToNodeId.set(n.fullValue, n.id);
+      // Update uriToNodeId map with newly added URI nodes only
+      nodesToAdd.forEach((n: any) => {
+        if (n.uri != null) {
+          this.uriToNodeId.set(n.uri, n.id);
+        }
       });
     }
     if (edgesToAdd.length > 0) {

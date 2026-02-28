@@ -29,7 +29,12 @@ export async function parseBackgroundQueryResponse(response: any): Promise<RDFTr
     const triples: RDFTriple[] = [];
 
     for (const binding of bindings) {
-      if (!binding.subject || !binding.predicate || !binding.object) continue;
+      if (
+        !binding.subject || !binding.predicate || !binding.object ||
+        typeof binding.subject.value !== 'string' ||
+        typeof binding.predicate.value !== 'string' ||
+        typeof binding.object.value !== 'string'
+      ) continue;
       triples.push({
         subject: binding.subject.value,
         predicate: binding.predicate.value,

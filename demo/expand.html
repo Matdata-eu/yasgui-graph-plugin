@@ -140,7 +140,14 @@
     function addLog(msg, type = 'inf') {
       const ts = new Date().toLocaleTimeString('en', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
       const line = document.createElement('div');
-      line.innerHTML = `<span class="ts">${ts}</span><span class="${type}">${msg}</span>`;
+      const tsSpan = document.createElement('span');
+      tsSpan.className = 'ts';
+      tsSpan.textContent = ts;
+      const msgSpan = document.createElement('span');
+      msgSpan.className = type;
+      msgSpan.textContent = msg;
+      line.appendChild(tsSpan);
+      line.appendChild(msgSpan);
       logEl.appendChild(line);
       logEl.scrollTop = logEl.scrollHeight;
     }
@@ -316,17 +323,17 @@
     function mockExecuteQuery(query, _options) {
       const match = query.match(/DESCRIBE\s+<([^>]+)>/i);
       const uri = match ? match[1] : null;
-      addLog(`⟶ DESCRIBE &lt;${uri}&gt;`, 'inf');
+      addLog(`⟶ DESCRIBE <${uri}>`, 'inf');
 
       return new Promise((resolve) => {
         setTimeout(() => {
           const data = MOCK_DESCRIBE_DATA[uri];
           if (data) {
             const tripleCount = data.results.bindings.length;
-            addLog(`⟵ ${tripleCount} triples returned for &lt;${uri}&gt;`, 'ok');
+            addLog(`⟵ ${tripleCount} triples returned for <${uri}>`, 'ok');
             resolve({ json: async () => data });
           } else {
-            addLog(`⟵ No mock data for &lt;${uri}&gt; – returning empty result`, 'err');
+            addLog(`⟵ No mock data for <${uri}> – returning empty result`, 'err');
             resolve({ json: async () => ({ results: { bindings: [] } }) });
           }
         }, 600);

@@ -135,6 +135,8 @@ export interface YasrResults {
 
 export interface PluginQueryOptions {
   acceptHeader?: string;
+  /** Optional AbortSignal used to cancel in-flight query requests */
+  signal?: AbortSignal;
 }
 
 export interface Yasr {
