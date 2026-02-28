@@ -477,8 +477,8 @@ export function triplesToGraph(
       // Show icon with rdfs:label underneath if available
       node.label = rdfsLabel ? `${visual.icon}\n${rdfsLabel}` : visual.icon;
       // Icon nodes must always be visible regardless of showNodeLabels setting
-      // Scale icon size based on nodeSize setting (base size: 24)
-      node.font = { size: 24 * sizeMultiplier };
+      // Use moderate font size (14px) for balanced icon/text appearance
+      node.font = { size: 14 * sizeMultiplier };
       if (!settings?.compactMode) {
         node.title = appendTooltipRows(node.title, buildVisualTooltipRow('Icon', visual.icon));
       }
@@ -498,6 +498,8 @@ export function triplesToGraph(
       // For images, show rdfs:label as the text label if available
       if (rdfsLabel) {
         node.label = rdfsLabel;
+        // Set consistent font size for image node labels
+        node.font = { size: 14 * sizeMultiplier };
       }
       if (!settings?.compactMode) {
         node.title = appendTooltipRows(node.title, buildVisualTooltipRow('Image', visual.image));

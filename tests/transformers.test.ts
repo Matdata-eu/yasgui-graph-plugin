@@ -486,6 +486,7 @@ describe('triplesToGraph – schema:image / schema:icon integration', () => {
     const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
     expect(alice?.shape).toBe('text');
     expect(alice?.label).toBe('🧑\nAlice');
+    expect(alice?.font?.size).toBe(14);
   });
 
   it('uses rdfs:label with schema:image', () => {
@@ -499,6 +500,7 @@ describe('triplesToGraph – schema:image / schema:icon integration', () => {
     expect(alice?.shape).toBe('circularImage');
     expect(alice?.image).toBe('https://example.com/alice.png');
     expect(alice?.label).toBe('Alice');
+    expect(alice?.font?.size).toBe(14);
   });
 
   it('in compact mode shows rdfs:label with inherited schema:icon', () => {
@@ -511,6 +513,7 @@ describe('triplesToGraph – schema:image / schema:icon integration', () => {
     const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
     expect(alice?.shape).toBe('text');
     expect(alice?.label).toBe('👤\nAlice');
+    expect(alice?.font?.size).toBe(14);
   });
 
   it('rdfs:label does not create a separate node', () => {
@@ -543,19 +546,19 @@ describe('triplesToGraph – schema:image / schema:icon integration', () => {
       { subject: 'http://example.org/alice', predicate: SCHEMA_ICON, object: { value: '🧑', type: 'literal' } },
     ];
     
-    // Small size: 24 * 0.5 = 12
+    // Small size: 14 * 0.5 = 7
     const small = triplesToGraph(triples, prefixMap, themeColors, { nodeSize: 'small' });
     const aliceSmall = small.nodes.find((n) => n.uri === 'http://example.org/alice');
-    expect(aliceSmall?.font?.size).toBe(12);
+    expect(aliceSmall?.font?.size).toBe(7);
     
-    // Medium size: 24 * 1 = 24
+    // Medium size: 14 * 1 = 14
     const medium = triplesToGraph(triples, prefixMap, themeColors, { nodeSize: 'medium' });
     const aliceMedium = medium.nodes.find((n) => n.uri === 'http://example.org/alice');
-    expect(aliceMedium?.font?.size).toBe(24);
+    expect(aliceMedium?.font?.size).toBe(14);
     
-    // Large size: 24 * 2 = 48
+    // Large size: 14 * 2 = 28
     const large = triplesToGraph(triples, prefixMap, themeColors, { nodeSize: 'large' });
     const aliceLarge = large.nodes.find((n) => n.uri === 'http://example.org/alice');
-    expect(aliceLarge?.font?.size).toBe(48);
+    expect(aliceLarge?.font?.size).toBe(28);
   });
 });
