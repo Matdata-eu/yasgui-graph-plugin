@@ -71,15 +71,21 @@ function createEdgeTooltipHTML(predicateUri: string): string {
  * @param triples - RDF triples
  * @param prefixMap - Namespace to prefix mappings
  * @param themeColors - Theme-specific colors for nodes
+ * @param settings - Optional plugin settings for node sizing
  * @returns Map of node value to GraphNode
  */
 export function createNodeMap(
   triples: RDFTriple[],
   prefixMap: Map<string, string>,
-  themeColors: ThemeColors
+  themeColors: ThemeColors,
+  settings?: Partial<GraphPluginSettings>
 ): Map<string, GraphNode> {
   const nodeMap = new Map<string, GraphNode>();
   let nodeId = 1;
+  
+  // Calculate size multiplier based on settings
+  // medium (default) = 1x, small = 0.5x, large = 2x
+  const sizeMultiplier = settings?.nodeSize === 'small' ? 0.5 : settings?.nodeSize === 'large' ? 2 : 1;
   
   triples.forEach((triple) => {
     // Add subject node
@@ -96,7 +102,7 @@ export function createNodeMap(
         color: getNodeColor({ uri: triple.subject, type: 'uri' }, triples, themeColors),
         type: 'uri',
         fullValue: triple.subject,
-        size: 10,
+        size: 10 * sizeMultiplier,
         title: createNodeTooltipHTML(
           isBlankNode ? 'bnode' : 'uri',
           triple.subject,
@@ -148,7 +154,7 @@ export function createNodeMap(
         ),
         type: isLiteral ? 'literal' : 'uri',
         fullValue: fullValue,
-        size: isLiteral ? 5 : 10,
+        size: (isLiteral ? 5 : 10) * sizeMultiplier,
         title: title,
       });
     }
@@ -257,7 +263,7 @@ export function triplesToGraph(
   themeColors: ThemeColors,
   settings?: Partial<GraphPluginSettings>
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
-  const nodeMap = createNodeMap(triples, prefixMap, themeColors);
+  const nodeMap = createNodeMap(triples, prefixMap, themeColors, settings);
 
   // Filter nodes based on settings
   const visibleNodeIds = new Set<number>();
