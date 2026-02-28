@@ -27,7 +27,7 @@ export const DEFAULT_SETTINGS: GraphPluginSettings = {
   showLiterals: true,
   showClasses: true,
   showBlankNodes: true,
-  predicateDisplay: 'label',
+  predicateDisplay: 'icon',
   showNodeLabels: true,
   physicsEnabled: true,
   nodeSize: 'medium',

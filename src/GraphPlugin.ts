@@ -23,6 +23,8 @@ class GraphPlugin {
   private triples: RDFTriple[] | null;
   private prefixMap: Map<string, string> | null;
   private settings: GraphPluginSettings;
+  private settingsPanelOpen: boolean = false;
+  private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
 
   constructor(yasr: Yasr) {
     this.yasr = yasr;
@@ -81,6 +83,9 @@ class GraphPlugin {
    * Render the graph visualization
    */
   draw(): void {
+    // Save settings panel state
+    const wasPanelOpen = this.settingsPanelOpen;
+    
     // Clear previous content
     this.yasr.resultsEl.innerHTML = '';
     
@@ -136,16 +141,28 @@ class GraphPlugin {
       // Apply background color to canvas
       this.applyCanvasBackground(themeColors.background);
       
-      // Disable physics after stabilization and fit to view
-      this.network.on('stabilizationIterationsDone', () => {
-        this.network.setOptions({ physics: { enabled: true } });
-        // Fit the graph to view after layout is complete
-        this.network.fit({ maxZoomLevel: 3.0 });
-        
-        // Setup ResizeObserver to adjust container height based on parent
-        // Workaround for viz-network bug: must use fixed pixel height
-        this.setupContainerResize(container);
-      });
+      // Setup ResizeObserver to adjust container height based on parent
+      // This must be done immediately, not in stabilization callback
+      // Workaround for viz-network bug: must use fixed pixel height
+      this.setupContainerResize(container);
+      
+      // Handle stabilization and initial view
+      if (this.settings.physicsEnabled) {
+        // If physics is enabled, wait for stabilization before fitting
+        this.network.on('stabilizationIterationsDone', () => {
+          this.network.setOptions({ physics: { enabled: true } });
+          // Fit the graph to view after layout is complete
+          this.network.fit({ maxZoomLevel: 3.0 });
+        });
+      } else {
+        // If physics is disabled, fit immediately
+        // Use setTimeout to ensure the network is fully initialized
+        setTimeout(() => {
+          if (this.network) {
+            this.network.fit({ maxZoomLevel: 3.0 });
+          }
+        }, 100);
+      }
       
       // Fix nodes in place after the user manually drags them
       this.network.on('dragEnd', (params: { nodes: (string | number)[] }) => {
@@ -196,6 +213,11 @@ class GraphPlugin {
         this.toggleSettingsPanel(container);
       };
       controls.appendChild(settingsButton);
+      
+      // Re-open settings panel if it was open before redraw
+      if (wasPanelOpen) {
+        this.toggleSettingsPanel(container);
+      }
 
     } catch (error) {
       console.error('Error rendering graph:', error);
@@ -442,9 +464,64 @@ class GraphPlugin {
     const existing = container.querySelector('.yasgui-graph-settings-panel');
     if (existing) {
       existing.remove();
+      this.settingsPanelOpen = false;
+      this.removeClickOutsideHandler();
     } else {
-      container.appendChild(this.createSettingsPanel(container));
+      const panel = this.createSettingsPanel(container);
+      container.appendChild(panel);
+      this.settingsPanelOpen = true;
+      this.setupClickOutsideHandler(container, panel);
     }
+  }
+
+  /**
+   * Setup click-outside-to-close handler for settings panel
+   * @param container - The graph container element
+   * @param panel - The settings panel element
+   */
+  private setupClickOutsideHandler(container: HTMLElement, panel: HTMLElement): void {
+    // Remove any existing handler
+    this.removeClickOutsideHandler();
+    
+    // Create new handler
+    this.clickOutsideHandler = (event: MouseEvent) => {
+      const target = event.target as Node;
+      
+      // Check if click is outside the panel and not on the settings button
+      if (!panel.contains(target) && !this.isSettingsButton(target)) {
+        this.toggleSettingsPanel(container);
+      }
+    };
+    
+    // Add handler with a small delay to avoid immediate closing
+    setTimeout(() => {
+      document.addEventListener('click', this.clickOutsideHandler!);
+    }, 100);
+  }
+
+  /**
+   * Remove the click-outside handler
+   */
+  private removeClickOutsideHandler(): void {
+    if (this.clickOutsideHandler) {
+      document.removeEventListener('click', this.clickOutsideHandler);
+      this.clickOutsideHandler = null;
+    }
+  }
+
+  /**
+   * Check if a node is the settings button or inside it
+   * @param node - The node to check
+   */
+  private isSettingsButton(node: Node): boolean {
+    let current: Node | null = node;
+    while (current) {
+      if (current instanceof Element && current.classList.contains('yasgui-graph-settings-button')) {
+        return true;
+      }
+      current = current.parentNode;
+    }
+    return false;
   }
 
   /**
@@ -515,10 +592,11 @@ class GraphPlugin {
       panel.appendChild(row);
     };
 
-    // Re-draw graph after a setting change
+    // Re-draw graph after a setting change (keeping panel open)
     const applyAndRedraw = () => {
       saveSettings(this.settings);
       // Re-draw entire graph to reflect new settings
+      // The draw() method will restore the settings panel since settingsPanelOpen = true
       this.draw();
     };
 
@@ -607,6 +685,7 @@ class GraphPlugin {
    * Cleanup when plugin is destroyed
    */
   destroy(): void {
+    this.removeClickOutsideHandler();
     if (this.themeObserver) {
       this.themeObserver.disconnect();
       this.themeObserver = null;

@@ -31,8 +31,8 @@ describe('DEFAULT_SETTINGS', () => {
     expect(DEFAULT_SETTINGS.showBlankNodes).toBe(true);
   });
 
-  it('uses label mode for predicate display by default', () => {
-    expect(DEFAULT_SETTINGS.predicateDisplay).toBe('label');
+  it('uses icon mode for predicate display by default', () => {
+    expect(DEFAULT_SETTINGS.predicateDisplay).toBe('icon');
   });
 
   it('shows node labels by default', () => {
