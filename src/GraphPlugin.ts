@@ -140,6 +140,20 @@ class GraphPlugin {
         this.setupContainerResize(container);
       });
       
+      // Fix nodes in place after the user manually drags them
+      this.network.on('dragEnd', (params: { nodes: (string | number)[] }) => {
+        if (params.nodes.length > 0) {
+          const positions = this.network.getPositions(params.nodes);
+          const updates = params.nodes.map((id: string | number) => ({
+            id,
+            x: positions[id].x,
+            y: positions[id].y,
+            fixed: { x: true, y: true },
+          }));
+          this.nodesDataSet.update(updates);
+        }
+      });
+      
       // Setup theme change observer
       if (!this.themeObserver) {
         this.themeObserver = watchThemeChanges((newTheme) => {
@@ -184,6 +198,15 @@ class GraphPlugin {
     this.currentTheme = newTheme;
     const themeColors = getThemeNodeColors(newTheme);
     
+    // Preserve fixed positions of manually dragged nodes before clearing
+    const fixedNodes: Record<string | number, { x: number; y: number }> = {};
+    this.nodesDataSet.get().forEach((node: { id: string | number; fixed?: boolean | { x?: boolean; y?: boolean }; x?: number; y?: number }) => {
+      const isFixed = node.fixed === true || (typeof node.fixed === 'object' && node.fixed?.x && node.fixed?.y);
+      if (isFixed && node.x !== undefined && node.y !== undefined) {
+        fixedNodes[node.id] = { x: node.x, y: node.y };
+      }
+    });
+
     // Regenerate graph data with new theme colors
     const { nodes, edges } = triplesToGraph(this.triples, this.prefixMap, themeColors);
     
@@ -192,6 +215,18 @@ class GraphPlugin {
     this.nodesDataSet.add(nodes);
     this.edgesDataSet.clear();
     this.edgesDataSet.add(edges);
+
+    // Restore fixed positions for manually dragged nodes
+    const fixedIds = Object.keys(fixedNodes);
+    if (fixedIds.length > 0) {
+      const updates = fixedIds.map((id) => ({
+        id,
+        x: fixedNodes[id].x,
+        y: fixedNodes[id].y,
+        fixed: { x: true, y: true },
+      }));
+      this.nodesDataSet.update(updates);
+    }
     
     // Update network options
     const options = getDefaultNetworkOptions(themeColors);
