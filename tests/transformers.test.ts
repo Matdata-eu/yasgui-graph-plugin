@@ -379,13 +379,14 @@ describe('triplesToGraph – schema:image / schema:icon integration', () => {
     expect(alice?.image).toBe('https://example.com/alice.png');
   });
 
-  it('sets icon as node label when schema:icon is present', () => {
+  it('sets shape to "text" and icon as node label when schema:icon is present', () => {
     const triples: RDFTriple[] = [
       { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
       { subject: 'http://example.org/alice', predicate: SCHEMA_ICON, object: { value: '🧑', type: 'literal' } },
     ];
     const { nodes } = triplesToGraph(triples, prefixMap, themeColors);
     const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(alice?.shape).toBe('text');
     expect(alice?.label).toBe('🧑');
   });
 
@@ -418,6 +419,7 @@ describe('triplesToGraph – schema:image / schema:icon integration', () => {
     ];
     const { nodes } = triplesToGraph(triples, prefixMap, themeColors, { compactMode: true });
     const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(alice?.shape).toBe('text');
     expect(alice?.label).toBe('👤');
   });
 

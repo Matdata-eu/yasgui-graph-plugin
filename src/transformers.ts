@@ -415,6 +415,7 @@ export function triplesToGraph(
       : getNodeVisual(node.uri, triples);
 
     if (visual.icon) {
+      node.shape = 'text';
       node.label = visual.icon;
       if (!settings?.compactMode) {
         node.title = appendTooltipRows(node.title, buildVisualTooltipRow('Icon', visual.icon));
