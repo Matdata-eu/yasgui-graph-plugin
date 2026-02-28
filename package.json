@@ -20,7 +20,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.{ts,scss}\"",
-    "test": "echo \"Manual browser testing per constitution\" && exit 0"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
