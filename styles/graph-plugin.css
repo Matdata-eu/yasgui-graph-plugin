@@ -65,3 +65,56 @@
   height: 16px;
   fill: currentColor;
 }
+
+/* Modern tooltip styles - override vis-network defaults */
+.yasgui-graph-plugin-container .vis-tooltip {
+  background-color: rgba(28, 28, 32, 0.95);
+  color: #f0f0f0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-family: ui-monospace, 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+  max-width: 340px;
+  white-space: normal;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.yasgui-graph-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.yasgui-tooltip-type {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(255, 255, 255, 0.5);
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 3px;
+}
+
+.yasgui-tooltip-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  line-height: 1.5;
+}
+
+.yasgui-tooltip-key {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  min-width: 58px;
+  flex-shrink: 0;
+}
+
+.yasgui-tooltip-val {
+  font-size: 11px;
+  color: #e8e8e8;
+  word-break: break-all;
+}
