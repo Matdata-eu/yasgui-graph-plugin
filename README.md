@@ -14,9 +14,10 @@ A YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as i
   - ⚪ Light Grey (#c5c5c5ff) = Blank nodes
   - 🟠 Orange (#e15b13ff) = rdf:type objects (classes)
 - **🖼️ Node Icons & Images**: Render images or emoji/icons on nodes via `schema:image` / `schema:icon` properties (see [Node icons and images](#node-icons-and-images))
+- **� Compact Mode**: Hide literal and class nodes; show rdf:type and datatype properties in enhanced tooltips instead
 - **🔍 Navigation**: Mouse wheel zoom, drag to pan, "Zoom to Fit" button
-- **✋ Drag & Drop**: Reorganize nodes by dragging them to new positions
-- **💬 Tooltips**: Hover for full URI/literal details (300ms delay)
+- **✋ Drag & Drop**: Reorganize nodes by dragging them to new positions (nodes stay pinned after manual drag)
+- **💬 Rich Tooltips**: Modern HTML tooltips with node type, value, namespace, and datatype information
 - **🌓 Theme Support**: Automatic light/dark mode detection and dynamic color switching
 - **⚡ Performance**: Handles up to 1,000 nodes with <2s render time
 - **♿ Accessible**: WCAG AA color contrast, keyboard navigation support
@@ -103,8 +104,8 @@ After running the query, click the **"Graph"** tab to see the visualization.
 - **Fit to View**: Click the "Zoom to Fit" button to center the entire graph
 
 ### Interaction
-- **Drag Nodes**: Click and drag any node to reposition it
-- **Tooltips**: Hover over nodes/edges for 300ms to see full details
+- **Drag Nodes**: Click and drag any node to reposition it (nodes are automatically pinned in place after dragging)
+- **Tooltips**: Hover over nodes/edges to see rich HTML tooltips with type, value, namespace, and datatype information
 
 ### Understanding Colors
 
@@ -125,6 +126,7 @@ Click the **⚙ Settings** button (top-right of the graph) to open the settings 
 
 | Setting | Values | Default | Description |
 |---------|--------|---------|-------------|
+| **Compact mode** | on / off | off | Hide literal and class nodes; show rdf:type and datatype properties in tooltips instead |
 | **Arrow style** | Curved / Straight | Curved | Toggle between smooth curved edges and straight lines between nodes |
 | **Predicate display** | Label / Icon / Hidden | Icon | Show the full prefixed URI on edges, a compact symbol/icon, or nothing |
 | **Show literals** | on / off | on | Include or exclude literal value nodes (strings, numbers, dates, …) |
@@ -262,6 +264,7 @@ Output:
 ### Code Quality
 
 ```bash
+npm test        # Run Jest unit tests
 npm run lint    # ESLint check
 npm run format  # Prettier format
 ```
