@@ -13,6 +13,7 @@ A YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as i
   - 🟢 Light Green (#a6c8a6ff) = Literals
   - ⚪ Light Grey (#c5c5c5ff) = Blank nodes
   - 🟠 Orange (#e15b13ff) = rdf:type objects (classes)
+- **🖼️ Node Icons & Images**: Render images or emoji/icons on nodes via `schema:image` / `schema:icon` properties (see [Node icons and images](#node-icons-and-images))
 - **🔍 Navigation**: Mouse wheel zoom, drag to pan, "Zoom to Fit" button
 - **✋ Drag & Drop**: Reorganize nodes by dragging them to new positions
 - **💬 Tooltips**: Hover for full URI/literal details (300ms delay)
@@ -174,6 +175,50 @@ When *Predicate display* is set to **Icon**, each edge displays a compact symbol
 | `schema:description` | `dsc` |
 
 For predicates not in the table the full prefixed label is used as a fallback.
+
+## 🖼️ Node icons and images
+
+Any URI node can display an image or an icon instead of (or in addition to) the default coloured dot by attaching `schema:image` or `schema:icon` as a property directly in the SPARQL result.
+
+| Property | Object | Effect |
+|----------|--------|--------|
+| `schema:image` (`https://schema.org/image`) | URL literal or URI | Node is rendered as a circular image |
+| `schema:icon` (`https://schema.org/icon`) | emoji / short string | The string is used as the node's label |
+
+`schema:icon` takes priority over `schema:image`.  The property triple is **not** rendered as a separate node or edge but its value **is** shown in the node tooltip.
+
+### Example – inline image on a resource
+
+```sparql
+CONSTRUCT {
+  ex:alice schema:image <https://example.com/alice.png> .
+  ex:alice ex:knows ex:bob .
+}
+WHERE {}
+```
+
+`ex:alice` will be drawn as a circular photograph.
+
+### Example – icon/emoji on a class
+
+```sparql
+CONSTRUCT {
+  ex:alice  rdf:type    ex:Person .
+  ex:Person schema:icon "👤" .
+}
+WHERE {}
+```
+
+`ex:alice` remains a normal dot node in regular mode.
+In **compact mode** the class node (`ex:Person`) is hidden and Alice's node inherits the `👤` emoji as its label.
+
+### Compact mode visual inheritance
+
+When compact mode is enabled, class nodes are hidden and the plugin resolves the image/icon to show on the resource node using the following priority:
+
+1. `schema:image` / `schema:icon` directly on the **resource** (highest priority)
+2. `schema:image` / `schema:icon` on the **rdf:type class**
+3. `schema:image` / `schema:icon` on a **rdfs:subClassOf superclass** (one hop)
 
 ### Programmatic configuration
 
