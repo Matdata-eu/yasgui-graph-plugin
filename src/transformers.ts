@@ -1,6 +1,8 @@
 import type { GraphNode, GraphEdge, RDFTriple, ThemeColors } from './types';
 import { applyPrefix, truncateLabel } from './prefixUtils';
 import { getNodeColor } from './colorUtils';
+import { getPredicateIcon } from './predicateIcons';
+import type { GraphPluginSettings } from './settings';
 
 /**
  * Escape HTML special characters to prevent XSS in tooltip content
@@ -69,15 +71,21 @@ function createEdgeTooltipHTML(predicateUri: string): string {
  * @param triples - RDF triples
  * @param prefixMap - Namespace to prefix mappings
  * @param themeColors - Theme-specific colors for nodes
+ * @param settings - Optional plugin settings for node sizing
  * @returns Map of node value to GraphNode
  */
 export function createNodeMap(
   triples: RDFTriple[],
   prefixMap: Map<string, string>,
-  themeColors: ThemeColors
+  themeColors: ThemeColors,
+  settings?: Partial<GraphPluginSettings>
 ): Map<string, GraphNode> {
   const nodeMap = new Map<string, GraphNode>();
   let nodeId = 1;
+  
+  // Calculate size multiplier based on settings
+  // medium (default) = 1x, small = 0.5x, large = 2x
+  const sizeMultiplier = settings?.nodeSize === 'small' ? 0.5 : settings?.nodeSize === 'large' ? 2 : 1;
   
   triples.forEach((triple) => {
     // Add subject node
@@ -94,7 +102,7 @@ export function createNodeMap(
         color: getNodeColor({ uri: triple.subject, type: 'uri' }, triples, themeColors),
         type: 'uri',
         fullValue: triple.subject,
-        size: 10,
+        size: 10 * sizeMultiplier,
         title: createNodeTooltipHTML(
           isBlankNode ? 'bnode' : 'uri',
           triple.subject,
@@ -146,7 +154,7 @@ export function createNodeMap(
         ),
         type: isLiteral ? 'literal' : 'uri',
         fullValue: fullValue,
-        size: isLiteral ? 5 : 10,
+        size: (isLiteral ? 5 : 10) * sizeMultiplier,
         title: title,
       });
     }
@@ -160,12 +168,14 @@ export function createNodeMap(
  * @param triples - RDF triples
  * @param nodeMap - Map of node values to GraphNodes
  * @param prefixMap - Namespace to prefix mappings
+ * @param settings - Optional plugin settings
  * @returns Array of GraphEdge objects
  */
 export function createEdgesArray(
   triples: RDFTriple[],
   nodeMap: Map<string, GraphNode>,
-  prefixMap: Map<string, string>
+  prefixMap: Map<string, string>,
+  settings?: Partial<GraphPluginSettings>
 ): GraphEdge[] {
   const edges: GraphEdge[] = [];
   const edgeSet = new Set<string>(); // For deduplication
@@ -181,12 +191,23 @@ export function createEdgesArray(
     
     if (!edgeSet.has(edgeKey)) {
       edgeSet.add(edgeKey);
-      
+
+      // Determine edge label based on predicateDisplay setting
+      let edgeLabel: string;
+      const predicateDisplay = settings?.predicateDisplay ?? 'label';
+      if (predicateDisplay === 'none') {
+        edgeLabel = '';
+      } else if (predicateDisplay === 'icon') {
+        edgeLabel = getPredicateIcon(triple.predicate) ?? truncateLabel(applyPrefix(triple.predicate, prefixMap));
+      } else {
+        edgeLabel = truncateLabel(applyPrefix(triple.predicate, prefixMap));
+      }
+
       edges.push({
         id: `edge_${fromNode.id}_${toNode.id}_${edges.length}`,
         from: fromNode.id,
         to: toNode.id,
-        label: truncateLabel(applyPrefix(triple.predicate, prefixMap)),
+        label: edgeLabel,
         predicate: triple.predicate,
         title: createEdgeTooltipHTML(triple.predicate),
         arrows: 'to',
@@ -198,20 +219,65 @@ export function createEdgesArray(
 }
 
 /**
+ * Determine whether a node should be shown according to current filter settings.
+ * @param node - Graph node
+ * @param triples - All RDF triples (used to detect class nodes)
+ * @param settings - Plugin settings
+ */
+function isNodeVisible(
+  node: GraphNode,
+  triples: RDFTriple[],
+  settings: Partial<GraphPluginSettings>
+): boolean {
+  // Blank nodes
+  if (node.uri && node.uri.startsWith('_:')) {
+    return settings.showBlankNodes !== false;
+  }
+  // Literal nodes
+  if (node.type === 'literal') {
+    return settings.showLiterals !== false;
+  }
+  // Class nodes (objects of rdf:type triples)
+  const isClass = triples.some(
+    (t) =>
+      t.predicate === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' &&
+      t.object.value === node.uri
+  );
+  if (isClass) {
+    return settings.showClasses !== false;
+  }
+  return true;
+}
+
+/**
  * Transform RDF triples to graph data structure
  * @param triples - RDF triples
  * @param prefixMap - Namespace to prefix mappings
  * @param themeColors - Theme-specific colors for nodes
+ * @param settings - Optional plugin settings
  * @returns Object with nodes and edges arrays
  */
 export function triplesToGraph(
   triples: RDFTriple[],
   prefixMap: Map<string, string>,
-  themeColors: ThemeColors
+  themeColors: ThemeColors,
+  settings?: Partial<GraphPluginSettings>
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
-  const nodeMap = createNodeMap(triples, prefixMap, themeColors);
-  const edges = createEdgesArray(triples, nodeMap, prefixMap);
-  const nodes = Array.from(nodeMap.values());
-  
+  const nodeMap = createNodeMap(triples, prefixMap, themeColors, settings);
+
+  // Filter nodes based on settings
+  const visibleNodeIds = new Set<number>();
+  nodeMap.forEach((node) => {
+    if (!settings || isNodeVisible(node, triples, settings)) {
+      visibleNodeIds.add(node.id);
+    }
+  });
+
+  const edges = createEdgesArray(triples, nodeMap, prefixMap, settings)
+    // Only include edges where both endpoints are visible
+    .filter((e) => visibleNodeIds.has(e.from) && visibleNodeIds.has(e.to));
+
+  const nodes = Array.from(nodeMap.values()).filter((n) => visibleNodeIds.has(n.id));
+
   return { nodes, edges };
 }

@@ -1,5 +1,6 @@
 import { getDefaultNetworkOptions } from '../src/networkConfig';
 import type { ThemeColors } from '../src/types';
+import { DEFAULT_SETTINGS } from '../src/settings';
 
 const themeColors: ThemeColors = {
   blankNode: '#888888',
@@ -59,5 +60,31 @@ describe('getDefaultNetworkOptions', () => {
     const lightOptions = getDefaultNetworkOptions(themeColors);
     const darkOptions = getDefaultNetworkOptions(darkThemeColors);
     expect(lightOptions.nodes.font.color).not.toBe(darkOptions.nodes.font.color);
+  });
+
+  it('disables smooth edges when edgeStyle is "straight"', () => {
+    const options = getDefaultNetworkOptions(themeColors, { ...DEFAULT_SETTINGS, edgeStyle: 'straight' });
+    expect(options.edges.smooth.enabled).toBe(false);
+  });
+
+  it('enables smooth edges when edgeStyle is "curved"', () => {
+    const options = getDefaultNetworkOptions(themeColors, { ...DEFAULT_SETTINGS, edgeStyle: 'curved' });
+    expect(options.edges.smooth.enabled).toBe(true);
+  });
+
+  it('disables physics when physicsEnabled is false', () => {
+    const options = getDefaultNetworkOptions(themeColors, { ...DEFAULT_SETTINGS, physicsEnabled: false });
+    expect(options.physics.enabled).toBe(false);
+  });
+
+  it('sets font size to 0 when showNodeLabels is false', () => {
+    const options = getDefaultNetworkOptions(themeColors, { ...DEFAULT_SETTINGS, showNodeLabels: false });
+    expect(options.nodes.font.size).toBe(0);
+  });
+
+  it('sets a larger node size when nodeSize is "large"', () => {
+    const mediumOptions = getDefaultNetworkOptions(themeColors, { ...DEFAULT_SETTINGS, nodeSize: 'medium' });
+    const largeOptions = getDefaultNetworkOptions(themeColors, { ...DEFAULT_SETTINGS, nodeSize: 'large' });
+    expect(largeOptions.nodes.size).toBeGreaterThan(mediumOptions.nodes.size);
   });
 });
