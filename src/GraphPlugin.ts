@@ -1,13 +1,22 @@
 import type { Yasr, RDFTriple } from './types';
 import { extractPrefixes } from './prefixUtils';
 import { getDefaultNetworkOptions } from './networkConfig';
-import { parseConstructResults } from './parsers';
+import { parseConstructResults, parseBackgroundQueryResponse } from './parsers';
 import { triplesToGraph } from './transformers';
 import { Network, DataSet } from 'vis-network/standalone';
 import { getCurrentTheme, getThemeNodeColors, watchThemeChanges } from './themeUtils';
 import { loadSettings, saveSettings } from './settings';
 import type { GraphPluginSettings } from './settings';
 import '../styles/index.css';
+
+/** Border width while a DESCRIBE query is in-flight for a node */
+const LOADING_BORDER_WIDTH = 4;
+/** Border color while a DESCRIBE query is in-flight for a node */
+const LOADING_BORDER_COLOR = '#ffa500';
+/** Border width after a node has been successfully expanded */
+const EXPANDED_BORDER_WIDTH = 3;
+/** Default (restored) border width when expansion fails or is aborted */
+const DEFAULT_BORDER_WIDTH = 2;
 
 /**
  * YASR plugin for visualizing SPARQL CONSTRUCT results as graphs
@@ -25,6 +34,8 @@ class GraphPlugin {
   private settings: GraphPluginSettings;
   private settingsPanelOpen: boolean = false;
   private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
+  private expansionAbortController: AbortController | null = null;
+  private uriToNodeId: Map<string, number> = new Map();
 
   constructor(yasr: Yasr) {
     this.yasr = yasr;
@@ -92,6 +103,16 @@ class GraphPlugin {
   draw(): void {
     // Save settings panel state
     const wasPanelOpen = this.settingsPanelOpen;
+    
+    // Abort any ongoing expansion when redrawing
+    if (this.expansionAbortController) {
+      this.expansionAbortController.abort();
+      this.expansionAbortController = null;
+    }
+    
+    // Reset expansion state on full redraw
+    this.expandedNodes = new Set();
+    this.uriToNodeId = new Map();
     
     // Clear previous content
     this.yasr.resultsEl.innerHTML = '';
@@ -182,6 +203,17 @@ class GraphPlugin {
             fixed: { x: true, y: true },
           }));
           this.nodesDataSet.update(updates);
+        }
+      });
+      
+      // Setup double-click to expand nodes
+      this.setupNodeExpansion();
+      
+      // Build URI→node-ID map for incremental expansion merges (URI nodes only)
+      this.uriToNodeId = new Map();
+      this.nodesDataSet.get().forEach((node: any) => {
+        if (node.uri) {
+          this.uriToNodeId.set(node.uri, node.id);
         }
       });
       
@@ -661,7 +693,152 @@ class GraphPlugin {
   }
 
   /**
-   * Get icon for plugin tab
+   * Setup double-click handler for node expansion
+   */
+  private setupNodeExpansion(): void {
+    if (!this.network) return;
+
+    this.network.on('doubleClick', (params: any) => {
+      if (params.nodes.length === 0) return;
+
+      const nodeId = params.nodes[0];
+      const node = this.nodesDataSet.get(nodeId);
+
+      // Only expand URI nodes (not literals or blank nodes)
+      if (node && node.uri && !node.uri.startsWith('_:')) {
+        this.expandNode(node.uri);
+      }
+    });
+  }
+
+  /**
+   * Expand a node by executing a DESCRIBE query for the given URI and
+   * merging the returned triples into the existing graph.
+   * @param uri - URI of the node to expand
+   */
+  private async expandNode(uri: string): Promise<void> {
+    if (!this.yasr.executeQuery) {
+      console.warn('yasgui-graph-plugin: background query execution not available (yasr.executeQuery is not configured)');
+      return;
+    }
+    if (!this.triples || !this.prefixMap) return;
+
+    // Abort any ongoing expansion
+    if (this.expansionAbortController) {
+      this.expansionAbortController.abort();
+    }
+    const controller = new AbortController();
+    this.expansionAbortController = controller;
+
+    // Capture original node appearance so we can restore it precisely
+    const nodeId = this.uriToNodeId.get(uri);
+    let originalColor: any = undefined;
+    let originalBorderWidth: number | undefined = undefined;
+    if (nodeId !== undefined) {
+      const node = this.nodesDataSet.get(nodeId);
+      if (node) {
+        originalColor = node.color;
+        originalBorderWidth = node.borderWidth;
+      }
+      this.nodesDataSet.update({
+        id: nodeId,
+        borderWidth: LOADING_BORDER_WIDTH,
+        color: typeof originalColor === 'object' && originalColor !== null
+          ? { ...originalColor, border: LOADING_BORDER_COLOR }
+          : { border: LOADING_BORDER_COLOR, background: originalColor ?? undefined },
+      });
+    }
+
+    const restoreNode = (borderWidth: number) => {
+      if (nodeId !== undefined) {
+        this.nodesDataSet.update({ id: nodeId, borderWidth, color: originalColor });
+      }
+    };
+
+    try {
+      const response = await this.yasr.executeQuery(`DESCRIBE <${uri}>`, {
+        acceptHeader: 'application/sparql-results+json',
+        signal: controller.signal,
+      });
+
+      if (controller.signal.aborted) {
+        restoreNode(originalBorderWidth ?? DEFAULT_BORDER_WIDTH);
+        return;
+      }
+
+      const newTriples = await parseBackgroundQueryResponse(response);
+
+      if (controller.signal.aborted) {
+        restoreNode(originalBorderWidth ?? DEFAULT_BORDER_WIDTH);
+        return;
+      }
+
+      // Deduplicate against existing triples
+      const existingKeys = new Set(
+        this.triples.map((t) => `${t.subject}|${t.predicate}|${t.object.value}`)
+      );
+      const uniqueNew = newTriples.filter(
+        (t) => !existingKeys.has(`${t.subject}|${t.predicate}|${t.object.value}`)
+      );
+
+      if (uniqueNew.length > 0) {
+        this.triples = [...this.triples, ...uniqueNew];
+        this.mergeNewTriples();
+      }
+
+      // Mark as expanded: restore border with a thicker width to signal expansion
+      restoreNode(EXPANDED_BORDER_WIDTH);
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        restoreNode(originalBorderWidth ?? DEFAULT_BORDER_WIDTH);
+        return;
+      }
+      console.error('yasgui-graph-plugin: error expanding node', uri, error);
+      // Restore original node appearance on error
+      restoreNode(originalBorderWidth ?? DEFAULT_BORDER_WIDTH);
+    }
+  }
+
+  /**
+   * Incrementally add new triples to the vis-network DataSets without a full redraw.
+   * New nodes and edges are added; existing ones are left untouched.
+   * Expects `this.triples` to already include the new triples.
+   */
+  private mergeNewTriples(): void {
+    if (!this.triples || !this.prefixMap || !this.nodesDataSet || !this.edgesDataSet) return;
+
+    const themeColors = getThemeNodeColors(this.currentTheme);
+
+    // Regenerate the full graph from all triples (new IDs are stable for existing nodes)
+    const { nodes, edges } = triplesToGraph(this.triples, this.prefixMap, themeColors, this.settings);
+
+    // Find nodes not yet in the DataSet
+    const existingValues = new Set(this.nodesDataSet.get().map((n: any) => n.fullValue));
+    const nodesToAdd = nodes.filter((n) => !existingValues.has(n.fullValue));
+
+    // Find edges not yet in the DataSet (compare by from+predicate+to)
+    const existingEdgeKeys = new Set(
+      this.edgesDataSet.get().map((e: any) => `${e.from}|${e.predicate}|${e.to}`)
+    );
+    const edgesToAdd = edges.filter(
+      (e) => !existingEdgeKeys.has(`${e.from}|${e.predicate}|${e.to}`)
+    );
+
+    if (nodesToAdd.length > 0) {
+      this.nodesDataSet.add(nodesToAdd);
+      // Update uriToNodeId map with newly added URI nodes only
+      nodesToAdd.forEach((n: any) => {
+        if (n.uri != null) {
+          this.uriToNodeId.set(n.uri, n.id);
+        }
+      });
+    }
+    if (edgesToAdd.length > 0) {
+      this.edgesDataSet.add(edgesToAdd);
+    }
+  }
+
+  /**
    * @returns Icon element
    */
   getIcon(): HTMLElement {
@@ -687,6 +864,10 @@ class GraphPlugin {
    */
   destroy(): void {
     this.removeClickOutsideHandler();
+    if (this.expansionAbortController) {
+      this.expansionAbortController.abort();
+      this.expansionAbortController = null;
+    }
     if (this.themeObserver) {
       this.themeObserver.disconnect();
       this.themeObserver = null;

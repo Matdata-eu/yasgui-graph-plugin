@@ -133,8 +133,15 @@ export interface YasrResults {
   getBindings(): YasrBinding[];
 }
 
+export interface PluginQueryOptions {
+  acceptHeader?: string;
+  /** Optional AbortSignal used to cancel in-flight query requests */
+  signal?: AbortSignal;
+}
+
 export interface Yasr {
   results: YasrResults;
   resultsEl: HTMLElement;
   getPrefixes?(): Record<string, string>;
+  executeQuery?(query: string, options?: PluginQueryOptions): Promise<any>;
 }
