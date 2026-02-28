@@ -96,6 +96,7 @@ export function createNodeMap(
         color: getNodeColor({ uri: triple.subject, type: 'uri' }, triples, themeColors),
         type: 'uri',
         fullValue: triple.subject,
+        size: 10,
         title: createNodeTooltipHTML(
           isBlankNode ? 'bnode' : 'uri',
           triple.subject,
@@ -147,6 +148,7 @@ export function createNodeMap(
         ),
         type: isLiteral ? 'literal' : 'uri',
         fullValue: fullValue,
+        size: isLiteral ? 5 : 10,
         title: title,
       });
     }

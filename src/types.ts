@@ -25,6 +25,7 @@ export interface GraphNode {
   type: 'uri' | 'literal';
   fullValue: string;
   title: string;
+  size?: number;
 }
 
 export interface GraphEdge {
