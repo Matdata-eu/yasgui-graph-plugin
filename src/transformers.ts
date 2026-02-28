@@ -3,6 +3,68 @@ import { applyPrefix, truncateLabel } from './prefixUtils';
 import { getNodeColor } from './colorUtils';
 
 /**
+ * Escape HTML special characters to prevent XSS in tooltip content
+ * @param str - Raw string to escape
+ * @returns HTML-escaped string
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Build an HTML tooltip string for a graph node
+ * @param nodeType - 'uri', 'literal', or 'bnode'
+ * @param value - Full value of the node
+ * @param datatype - Datatype URI for literals (optional)
+ * @param lang - Language tag for literals (optional)
+ * @param prefixMap - Namespace to prefix mappings for datatype display
+ * @returns HTML string for use as vis-network title
+ */
+function createNodeTooltipHTML(
+  nodeType: 'uri' | 'literal' | 'bnode',
+  value: string,
+  datatype?: string,
+  lang?: string,
+  prefixMap?: Map<string, string>
+): string {
+  const typeLabel = nodeType === 'uri' ? 'URI' : nodeType === 'literal' ? 'Literal' : 'Blank Node';
+
+  let rows = `<div class="yasgui-tooltip-type">${typeLabel}</div>`;
+
+  if (nodeType === 'literal') {
+    rows += `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">Value</span><span class="yasgui-tooltip-val">${escapeHtml(value)}</span></div>`;
+    if (datatype) {
+      const dtLabel = prefixMap ? applyPrefix(datatype, prefixMap) : datatype;
+      rows += `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">Datatype</span><span class="yasgui-tooltip-val">${escapeHtml(dtLabel)}</span></div>`;
+    }
+    if (lang) {
+      rows += `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">Language</span><span class="yasgui-tooltip-val">${escapeHtml(lang)}</span></div>`;
+    }
+  } else if (nodeType === 'uri') {
+    rows += `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">Full URI</span><span class="yasgui-tooltip-val">${escapeHtml(value)}</span></div>`;
+  }
+
+  return `<div class="yasgui-graph-tooltip">${rows}</div>`;
+}
+
+/**
+ * Build an HTML tooltip string for a graph edge (predicate)
+ * @param predicateUri - Full predicate URI
+ * @returns HTML string for use as vis-network title
+ */
+function createEdgeTooltipHTML(predicateUri: string): string {
+  const rows =
+    `<div class="yasgui-tooltip-type">Predicate</div>` +
+    `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">Full URI</span><span class="yasgui-tooltip-val">${escapeHtml(predicateUri)}</span></div>`;
+  return `<div class="yasgui-graph-tooltip">${rows}</div>`;
+}
+
+/**
  * Create deduplicated node map from triples
  * @param triples - RDF triples
  * @param prefixMap - Namespace to prefix mappings
@@ -32,7 +94,13 @@ export function createNodeMap(
         color: getNodeColor({ uri: triple.subject, type: 'uri' }, triples, themeColors),
         type: 'uri',
         fullValue: triple.subject,
-        title: isBlankNode ? triple.subject : applyPrefix(triple.subject, prefixMap),
+        title: createNodeTooltipHTML(
+          isBlankNode ? 'bnode' : 'uri',
+          triple.subject,
+          undefined,
+          undefined,
+          prefixMap
+        ),
       });
     }
     
@@ -49,17 +117,21 @@ export function createNodeMap(
       if (isLiteral) {
         label = truncateLabel(objValue);
         fullValue = objValue;
-        title = triple.object.datatype
-          ? `"${objValue}"^^${applyPrefix(triple.object.datatype, prefixMap)}`
-          : `"${objValue}"`;
+        title = createNodeTooltipHTML(
+          'literal',
+          objValue,
+          triple.object.datatype,
+          triple.object.lang,
+          prefixMap
+        );
       } else if (isBlankNode) {
         label = objValue;
         fullValue = objValue;
-        title = objValue;
+        title = createNodeTooltipHTML('bnode', objValue);
       } else {
         label = truncateLabel(applyPrefix(objValue, prefixMap));
         fullValue = objValue;
-        title = applyPrefix(objValue, prefixMap);
+        title = createNodeTooltipHTML('uri', objValue, undefined, undefined, prefixMap);
       }
       
       nodeMap.set(objValue, {
@@ -114,7 +186,7 @@ export function createEdgesArray(
         to: toNode.id,
         label: truncateLabel(applyPrefix(triple.predicate, prefixMap)),
         predicate: triple.predicate,
-        title: applyPrefix(triple.predicate, prefixMap),
+        title: createEdgeTooltipHTML(triple.predicate),
         arrows: 'to',
       });
     }
