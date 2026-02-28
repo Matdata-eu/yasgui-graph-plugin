@@ -193,131 +193,88 @@
 
     /* ─── Mock DESCRIBE responses ────────────────────────────────────────── */
     /**
-     * These objects simulate what a real SPARQL endpoint would return for
-     * DESCRIBE <uri> queries.  Each value is a SPARQL JSON result set with
-     * subject/predicate/object bindings.
+     * These strings simulate what a real SPARQL endpoint would return for
+     * DESCRIBE <uri> queries.  Each value is an RDF graph in Turtle format.
      */
     const MOCK_DESCRIBE_DATA = {
-      'http://example.org/alice': {
-        results: { bindings: [
-          { subject: { type: 'uri', value: 'http://example.org/alice' },
-            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/mbox' },
-            object:    { type: 'literal', value: 'alice@example.org' } },
-          { subject: { type: 'uri', value: 'http://example.org/alice' },
-            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/age' },
-            object:    { type: 'literal', value: '30', datatype: 'http://www.w3.org/2001/XMLSchema#integer' } },
-          { subject: { type: 'uri', value: 'http://example.org/alice' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#memberOf' },
-            object:    { type: 'uri', value: 'http://example.org/acme-corp' } },
-          { subject: { type: 'uri', value: 'http://example.org/alice' },
-            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/knows' },
-            object:    { type: 'uri', value: 'http://example.org/carol' } },
-          // Extra data about the org so it has a label
-          { subject: { type: 'uri', value: 'http://example.org/acme-corp' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
-            object:    { type: 'uri', value: 'http://www.w3.org/ns/org#Organization' } },
-          { subject: { type: 'uri', value: 'http://example.org/acme-corp' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#label' },
-            object:    { type: 'literal', value: 'ACME Corporation' } },
-          // Carol stub
-          { subject: { type: 'uri', value: 'http://example.org/carol' },
-            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/name' },
-            object:    { type: 'literal', value: 'Carol' } },
-        ]},
-      },
+      'http://example.org/alice': `
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix org: <http://www.w3.org/ns/org#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-      'http://example.org/bob': {
-        results: { bindings: [
-          { subject: { type: 'uri', value: 'http://example.org/bob' },
-            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/mbox' },
-            object:    { type: 'literal', value: 'bob@example.org' } },
-          { subject: { type: 'uri', value: 'http://example.org/bob' },
-            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/age' },
-            object:    { type: 'literal', value: '28', datatype: 'http://www.w3.org/2001/XMLSchema#integer' } },
-          { subject: { type: 'uri', value: 'http://example.org/bob' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#memberOf' },
-            object:    { type: 'uri', value: 'http://example.org/acme-corp' } },
-          { subject: { type: 'uri', value: 'http://example.org/bob' },
-            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/knows' },
-            object:    { type: 'uri', value: 'http://example.org/dave' } },
-          // Dave stub
-          { subject: { type: 'uri', value: 'http://example.org/dave' },
-            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/name' },
-            object:    { type: 'literal', value: 'Dave' } },
-          { subject: { type: 'uri', value: 'http://example.org/dave' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
-            object:    { type: 'uri', value: 'http://xmlns.com/foaf/0.1/Person' } },
-        ]},
-      },
+<http://example.org/alice> foaf:mbox "alice@example.org" ;
+    foaf:age "30"^^xsd:integer ;
+    org:memberOf <http://example.org/acme-corp> ;
+    foaf:knows <http://example.org/carol> .
 
-      'http://example.org/carol': {
-        results: { bindings: [
-          { subject: { type: 'uri', value: 'http://example.org/carol' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
-            object:    { type: 'uri', value: 'http://xmlns.com/foaf/0.1/Person' } },
-          { subject: { type: 'uri', value: 'http://example.org/carol' },
-            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/mbox' },
-            object:    { type: 'literal', value: 'carol@example.org' } },
-          { subject: { type: 'uri', value: 'http://example.org/carol' },
-            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/knows' },
-            object:    { type: 'uri', value: 'http://example.org/dave' } },
-          { subject: { type: 'uri', value: 'http://example.org/carol' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#memberOf' },
-            object:    { type: 'uri', value: 'http://example.org/tech-startup' } },
-          { subject: { type: 'uri', value: 'http://example.org/tech-startup' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#label' },
-            object:    { type: 'literal', value: 'TechStart Inc.' } },
-        ]},
-      },
+<http://example.org/acme-corp> rdf:type org:Organization ;
+    rdfs:label "ACME Corporation" .
 
-      'http://example.org/dave': {
-        results: { bindings: [
-          { subject: { type: 'uri', value: 'http://example.org/dave' },
-            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/mbox' },
-            object:    { type: 'literal', value: 'dave@example.org' } },
-          { subject: { type: 'uri', value: 'http://example.org/dave' },
-            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/knows' },
-            object:    { type: 'uri', value: 'http://example.org/alice' } },
-          { subject: { type: 'uri', value: 'http://example.org/dave' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#memberOf' },
-            object:    { type: 'uri', value: 'http://example.org/tech-startup' } },
-        ]},
-      },
+<http://example.org/carol> foaf:name "Carol" .
+`,
 
-      'http://example.org/acme-corp': {
-        results: { bindings: [
-          { subject: { type: 'uri', value: 'http://example.org/acme-corp' },
-            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/homepage' },
-            object:    { type: 'uri', value: 'https://example.org/acme' } },
-          { subject: { type: 'uri', value: 'http://example.org/acme-corp' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#hasMember' },
-            object:    { type: 'uri', value: 'http://example.org/alice' } },
-          { subject: { type: 'uri', value: 'http://example.org/acme-corp' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#hasMember' },
-            object:    { type: 'uri', value: 'http://example.org/bob' } },
-        ]},
-      },
+      'http://example.org/bob': `
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix org: <http://www.w3.org/ns/org#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-      'http://example.org/tech-startup': {
-        results: { bindings: [
-          { subject: { type: 'uri', value: 'http://example.org/tech-startup' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
-            object:    { type: 'uri', value: 'http://www.w3.org/ns/org#Organization' } },
-          { subject: { type: 'uri', value: 'http://example.org/tech-startup' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#hasMember' },
-            object:    { type: 'uri', value: 'http://example.org/carol' } },
-          { subject: { type: 'uri', value: 'http://example.org/tech-startup' },
-            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#hasMember' },
-            object:    { type: 'uri', value: 'http://example.org/dave' } },
-        ]},
-      },
+<http://example.org/bob> foaf:mbox "bob@example.org" ;
+    foaf:age "28"^^xsd:integer ;
+    org:memberOf <http://example.org/acme-corp> ;
+    foaf:knows <http://example.org/dave> .
+
+<http://example.org/dave> foaf:name "Dave" ;
+    rdf:type foaf:Person .
+`,
+
+      'http://example.org/carol': `
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix org: <http://www.w3.org/ns/org#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+<http://example.org/carol> rdf:type foaf:Person ;
+    foaf:mbox "carol@example.org" ;
+    foaf:knows <http://example.org/dave> ;
+    org:memberOf <http://example.org/tech-startup> .
+
+<http://example.org/tech-startup> rdfs:label "TechStart Inc." .
+`,
+
+      'http://example.org/dave': `
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix org: <http://www.w3.org/ns/org#> .
+
+<http://example.org/dave> foaf:mbox "dave@example.org" ;
+    foaf:knows <http://example.org/alice> ;
+    org:memberOf <http://example.org/tech-startup> .
+`,
+
+      'http://example.org/acme-corp': `
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix org: <http://www.w3.org/ns/org#> .
+
+<http://example.org/acme-corp> foaf:homepage <https://example.org/acme> ;
+    org:hasMember <http://example.org/alice> , <http://example.org/bob> .
+`,
+
+      'http://example.org/tech-startup': `
+@prefix org: <http://www.w3.org/ns/org#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+<http://example.org/tech-startup> rdf:type org:Organization ;
+    org:hasMember <http://example.org/carol> , <http://example.org/dave> .
+`,
     };
 
     /* ─── Mock executeQuery ─────────────────────────────────────────────── */
     /**
      * Simulates yasr.executeQuery().
      * Parses the URI from the DESCRIBE query string and returns a mock response
-     * in Fetch API style ({ json: async () => data }).
+     * in Fetch API style ({ text: async () => turtleString }).
      * An artificial 600 ms delay makes the orange loading border visible.
      */
     function mockExecuteQuery(query, _options) {
@@ -329,12 +286,12 @@
         setTimeout(() => {
           const data = MOCK_DESCRIBE_DATA[uri];
           if (data) {
-            const tripleCount = data.results.bindings.length;
-            addLog(`⟵ ${tripleCount} triples returned for <${uri}>`, 'ok');
-            resolve({ json: async () => data });
+            const tripleCount = data.trim().split('\n').filter(l => l.trim() && !l.trim().startsWith('@prefix') && !l.trim().startsWith('#')).length;
+            addLog(`⟵ ~${tripleCount} triples returned for <${uri}> (Turtle format)`, 'ok');
+            resolve({ text: async () => data });
           } else {
             addLog(`⟵ No mock data for <${uri}> – returning empty result`, 'err');
-            resolve({ json: async () => ({ results: { bindings: [] } }) });
+            resolve({ text: async () => '' });
           }
         }, 600);
       });

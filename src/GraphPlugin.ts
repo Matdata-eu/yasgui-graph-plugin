@@ -110,8 +110,7 @@ class GraphPlugin {
       this.expansionAbortController = null;
     }
     
-    // Reset expansion state on full redraw
-    this.expandedNodes = new Set();
+    // Reset URI to node ID mapping on full redraw
     this.uriToNodeId = new Map();
     
     // Clear previous content
@@ -757,7 +756,7 @@ class GraphPlugin {
 
     try {
       const response = await this.yasr.executeQuery(`DESCRIBE <${uri}>`, {
-        acceptHeader: 'application/sparql-results+json',
+        acceptHeader: 'text/turtle',
         signal: controller.signal,
       });
 
