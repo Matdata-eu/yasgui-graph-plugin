@@ -87,6 +87,9 @@ The standalone demo includes diverse test datasets:
 | Dataset | Description | Use Case |
 |---------|-------------|----------|
 | **Icons & Images** | Custom node visuals with schema:icon & schema:image | Visual customization demo |
+| **Inheritance Test** | 5 test cases for visual inheritance from rdf:type classes | Visual inheritance testing |
+| **Override Test** | 3 test cases for resource visuals overriding class defaults | Visual override testing |
+| **Multiple Types Test** | 2 test cases for resources with multiple rdf:type values | Multiple type handling |
 | **Basic Graph** | 2 people, simple relationships | Basic functionality |
 | **Social Network** | 5 people, multiple connections | Connected graph |
 | **Ontology** | Classes, properties, hierarchy | Ontology visualization |

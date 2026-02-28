@@ -135,5 +135,126 @@ CONSTRUCT {
   ex:headquarters schema:icon "🏛️" .
   ex:headquarters schema:containedInPlace ex:san-francisco .
 }
+WHERE {}`,
+
+  inheritanceTest: `PREFIX ex: <http://example.org/>
+PREFIX schema: <https://schema.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+# Test cases for icon/image inheritance from rdf:type classes
+CONSTRUCT {
+  # Define classes with visuals
+  ex:Vehicle rdf:type owl:Class .
+  ex:Vehicle schema:image "https://placehold.co/150/666666/white?text=Vehicle" .
+  
+  ex:Animal rdf:type owl:Class .
+  ex:Animal schema:icon "🐾" .
+  
+  ex:Food rdf:type owl:Class .
+  ex:Food schema:icon "🍽️" .
+  
+  ex:Beverage rdf:type owl:Class .
+  ex:Beverage schema:icon "🥤" .
+  
+  # Super classes
+  ex:LivingThing rdf:type owl:Class .
+  ex:LivingThing schema:icon "🌱" .
+  ex:Animal rdfs:subClassOf ex:LivingThing .
+  
+  ex:Machine rdf:type owl:Class .
+  ex:Machine schema:image "https://placehold.co/150/999999/white?text=Machine" .
+  ex:Vehicle rdfs:subClassOf ex:Machine .
+  
+  # Test Case 1: Resource inherits class image
+  ex:mycar rdf:type ex:Vehicle .
+  ex:mycar rdfs:label "My Car (inherits Vehicle image)" .
+  
+  # Test Case 2: Resource inherits class icon
+  ex:fluffy rdf:type ex:Animal .
+  ex:fluffy rdfs:label "Fluffy (inherits Animal icon)" .
+  
+  # Test Case 3: Resource with 2 types (picks first)
+  ex:smoothie rdf:type ex:Food, ex:Beverage .
+  ex:smoothie rdfs:label "Smoothie (2 types: Food & Beverage)" .
+  
+  # Test Case 4: Subclass icon (uses direct class, not superclass)
+  ex:rex rdf:type ex:Animal .
+  ex:rex rdfs:label "Rex (Animal subclass of LivingThing)" .
+  
+  # Test Case 5: Subclass image (uses direct class, not superclass)
+  ex:tesla rdf:type ex:Vehicle .
+  ex:tesla rdfs:label "Tesla (Vehicle subclass of Machine)" .
+}
+WHERE {}`,
+
+  overrideTest: `PREFIX ex: <http://example.org/>
+PREFIX schema: <https://schema.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+# Test cases for resource visuals overriding class visuals
+CONSTRUCT {
+  # Define classes with default visuals
+  ex:Book rdf:type owl:Class .
+  ex:Book schema:image "https://placehold.co/150/brown/white?text=Book" .
+  
+  ex:Music rdf:type owl:Class .
+  ex:Music schema:icon "🎵" .
+  
+  ex:Media rdf:type owl:Class .
+  ex:Media schema:image "https://placehold.co/150/purple/white?text=Media" .
+  ex:Media schema:icon "📺" .
+  
+  # Test Case 1: Resource image overrides class image
+  ex:myNovel rdf:type ex:Book .
+  ex:myNovel rdfs:label "My Novel (custom image overrides Book)" .
+  ex:myNovel schema:image "https://placehold.co/150/red/white?text=Novel" .
+  
+  # Test Case 2: Resource icon overrides class icon
+  ex:jazzSong rdf:type ex:Music .
+  ex:jazzSong rdfs:label "Jazz Song (custom icon overrides Music)" .
+  ex:jazzSong schema:icon "🎷" .
+  
+  # Test Case 3: Both resource image and icon override class
+  ex:myPodcast rdf:type ex:Media .
+  ex:myPodcast rdfs:label "My Podcast (both custom icon & image)" .
+  ex:myPodcast schema:image "https://placehold.co/150/green/white?text=Podcast" .
+  ex:myPodcast schema:icon "🎙️" .
+}
+WHERE {}`,
+
+  multipleTypesTest: `PREFIX ex: <http://example.org/>
+PREFIX schema: <https://schema.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+# Test cases for resources with multiple types having different images
+CONSTRUCT {
+  # Define classes with different images
+  ex:Sport rdf:type owl:Class .
+  ex:Sport schema:image "https://placehold.co/150/orange/white?text=Sport" .
+  
+  ex:Art rdf:type owl:Class .
+  ex:Art schema:image "https://placehold.co/150/pink/white?text=Art" .
+  
+  ex:Science rdf:type owl:Class .
+  ex:Science schema:image "https://placehold.co/150/blue/white?text=Science" .
+  
+  ex:Technology rdf:type owl:Class .
+  ex:Technology schema:image "https://placehold.co/150/teal/white?text=Tech" .
+  
+  # Test Case 1: Resource with 2 types (picks first type's image)
+  ex:gymnastics rdf:type ex:Sport, ex:Art .
+  ex:gymnastics rdfs:label "Gymnastics (Sport & Art)" .
+  
+  # Test Case 2: Resource with 3 types (picks first type's image)
+  ex:robotics rdf:type ex:Science, ex:Technology, ex:Art .
+  ex:robotics rdfs:label "Robotics (Science, Tech & Art)" .
+}
 WHERE {}`
 };
+
