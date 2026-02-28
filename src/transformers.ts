@@ -406,6 +406,9 @@ export function triplesToGraph(
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const nodeMap = createNodeMap(triples, prefixMap, themeColors, settings);
 
+  // Calculate size multiplier for icon font sizing
+  const sizeMultiplier = settings?.nodeSize === 'small' ? 0.5 : settings?.nodeSize === 'large' ? 2 : 1;
+  
   // In compact mode, enhance subject node tooltips with rdf:type and literal properties
   if (settings?.compactMode) {
     const subjects = new Set(triples.map((t) => t.subject));
@@ -433,6 +436,9 @@ export function triplesToGraph(
       node.shape = 'text';
       // Show icon with rdfs:label underneath if available
       node.label = rdfsLabel ? `${visual.icon}\n${rdfsLabel}` : visual.icon;
+      // Icon nodes must always be visible regardless of showNodeLabels setting
+      // Scale icon size based on nodeSize setting (base size: 24)
+      node.font = { size: 24 * sizeMultiplier };
       if (!settings?.compactMode) {
         node.title = appendTooltipRows(node.title, buildVisualTooltipRow('Icon', visual.icon));
       }
@@ -449,6 +455,11 @@ export function triplesToGraph(
     } else if (rdfsLabel) {
       // No visual but has rdfs:label - use it as the label
       node.label = rdfsLabel;
+    }
+    
+    // Add rdfs:label to tooltip in non-compact mode (in compact mode it's already included)
+    if (rdfsLabel && !settings?.compactMode) {
+      node.title = appendTooltipRows(node.title, buildVisualTooltipRow('rdfs:label', rdfsLabel));
     }
   });
 

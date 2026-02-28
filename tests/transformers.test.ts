@@ -503,4 +503,39 @@ describe('triplesToGraph – schema:image / schema:icon integration', () => {
     expect(nodes.length).toBe(2);
     expect(nodes.every(n => n.fullValue !== 'Alice Smith')).toBe(true);
   });
+
+  it('icon nodes have explicit font size so they remain visible when showNodeLabels is false', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
+      { subject: 'http://example.org/alice', predicate: SCHEMA_ICON, object: { value: '🧑', type: 'literal' } },
+    ];
+    const { nodes } = triplesToGraph(triples, prefixMap, themeColors, { showNodeLabels: false });
+    const alice = nodes.find((n) => n.uri === 'http://example.org/alice');
+    // Icon nodes must have explicit font sizing to remain visible regardless of global showNodeLabels setting
+    expect(alice?.shape).toBe('text');
+    expect(alice?.font).toBeDefined();
+    expect(alice?.font?.size).toBeGreaterThan(0);
+  });
+
+  it('icon nodes scale with nodeSize setting', () => {
+    const triples: RDFTriple[] = [
+      { subject: 'http://example.org/alice', predicate: 'http://example.org/knows', object: { value: 'http://example.org/bob', type: 'uri' } },
+      { subject: 'http://example.org/alice', predicate: SCHEMA_ICON, object: { value: '🧑', type: 'literal' } },
+    ];
+    
+    // Small size: 24 * 0.5 = 12
+    const small = triplesToGraph(triples, prefixMap, themeColors, { nodeSize: 'small' });
+    const aliceSmall = small.nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(aliceSmall?.font?.size).toBe(12);
+    
+    // Medium size: 24 * 1 = 24
+    const medium = triplesToGraph(triples, prefixMap, themeColors, { nodeSize: 'medium' });
+    const aliceMedium = medium.nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(aliceMedium?.font?.size).toBe(24);
+    
+    // Large size: 24 * 2 = 48
+    const large = triplesToGraph(triples, prefixMap, themeColors, { nodeSize: 'large' });
+    const aliceLarge = large.nodes.find((n) => n.uri === 'http://example.org/alice');
+    expect(aliceLarge?.font?.size).toBe(48);
+  });
 });
