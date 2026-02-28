@@ -125,7 +125,7 @@ Click the **⚙ Settings** button (top-right of the graph) to open the settings 
 | Setting | Values | Default | Description |
 |---------|--------|---------|-------------|
 | **Arrow style** | Curved / Straight | Curved | Toggle between smooth curved edges and straight lines between nodes |
-| **Predicate display** | Label / Icon / Hidden | Label | Show the full prefixed URI on edges, a compact symbol/icon, or nothing |
+| **Predicate display** | Label / Icon / Hidden | Icon | Show the full prefixed URI on edges, a compact symbol/icon, or nothing |
 | **Show literals** | on / off | on | Include or exclude literal value nodes (strings, numbers, dates, …) |
 | **Show classes** | on / off | on | Include or exclude nodes that are objects of `rdf:type` triples (class nodes) |
 | **Show blank nodes** | on / off | on | Include or exclude blank nodes (`_:b0`, `_:b1`, …) |
@@ -185,7 +185,8 @@ class CustomGraphPlugin extends GraphPlugin {
     super(yasr);
     // Override defaults
     this.settings.edgeStyle = 'straight';
-    this.settings.predicateDisplay = 'icon';
+    this.settings.predicateDisplay = 'label';
+    this.settings.nodeSize = 'large';
   }
 }
 
