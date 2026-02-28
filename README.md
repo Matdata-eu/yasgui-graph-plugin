@@ -17,7 +17,8 @@ A YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as i
 - **� Compact Mode**: Hide literal and class nodes; show rdf:type and datatype properties in enhanced tooltips instead
 - **🔍 Navigation**: Mouse wheel zoom, drag to pan, "Zoom to Fit" button
 - **✋ Drag & Drop**: Reorganize nodes by dragging them to new positions (nodes stay pinned after manual drag)
-- **💬 Rich Tooltips**: Modern HTML tooltips with node type, value, namespace, and datatype information
+- **� Node Expansion**: Double-click any URI node to fetch and merge related triples via DESCRIBE queries (see [Expand Nodes with Double Click](#-expand-nodes-with-double-click))
+- **�💬 Rich Tooltips**: Modern HTML tooltips with node type, value, namespace, and datatype information
 - **🌓 Theme Support**: Automatic light/dark mode detection and dynamic color switching
 - **⚡ Performance**: Handles up to 1,000 nodes with <2s render time
 - **♿ Accessible**: WCAG AA color contrast, keyboard navigation support
@@ -105,6 +106,7 @@ After running the query, click the **"Graph"** tab to see the visualization.
 
 ### Interaction
 - **Drag Nodes**: Click and drag any node to reposition it (nodes are automatically pinned in place after dragging)
+- **Expand Nodes**: 🆕 Double-click any blue URI node to fetch and merge additional RDF triples for that resource (see [Node Expansion](#expand-nodes-with-double-click) below)
 - **Tooltips**: Hover over nodes/edges to see rich HTML tooltips with type, value, namespace, and datatype information
 
 ### Understanding Colors
@@ -240,7 +242,100 @@ class CustomGraphPlugin extends GraphPlugin {
 Yasgui.Yasr.registerPlugin('customGraph', CustomGraphPlugin);
 ```
 
-## 🔧 Development
+## � Expand Nodes with Double Click
+
+The graph plugin supports **interactive node expansion** via double-clicking. This allows you to progressively explore RDF graphs by fetching additional triples for any URI node without redrawing the entire graph.
+
+### How It Works
+
+1. **Double-click a blue URI node** in the graph
+2. The node's border turns **orange and thickens** (loading state)
+3. A `DESCRIBE <uri>` query is sent to the SPARQL endpoint
+4. **New triples are merged** into the existing graph
+5. Node's border returns to normal width with **thicker border (3px) to indicate expansion**
+6. Graph layout and zoom level are **preserved**
+
+### Visual Feedback
+
+| State | Border | Meaning |
+|-------|--------|---------|
+| **Default** | 2px | Node has not been expanded |
+| **Loading** | 4px, orange | DESCRIBE query in progress |
+| **Expanded** | 3px, normal color | Successfully expanded |
+
+### Supported Node Types
+
+| Node Type | Can Expand? | Reason |
+|-----------|-------|----|
+| 🔵 **URI nodes** | ✅ Yes | DESCRIBE works on URIs |
+| 🟢 **Literals** | ❌ No | Cannot run DESCRIBE on literal values |
+| ⚪ **Blank nodes** | ❌ No | Blank nodes have no resolvable identity |
+
+### Example: Exploring a Knowledge Graph
+
+**Initial Query**:
+```sparql
+PREFIX ex: <http://example.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+CONSTRUCT {
+  ex:alice foaf:knows ex:bob .
+  ex:alice foaf:name "Alice" .
+  ex:bob foaf:name "Bob" .
+}
+WHERE {}
+```
+
+**Initial Graph**: 3 nodes (Alice, "Alice", Bob, "Bob"), 2 edges
+
+**User Action**: Double-click the `ex:bob` node
+
+**What Happens**:
+- System executes: `DESCRIBE <http://example.org/bob>`
+- Endpoint returns all triples about Bob (from your SPARQL endpoint)
+- New nodes and edges appear in the graph
+- Graph layout shifts smoothly to accommodate new nodes
+- `ex:bob` node gets a thicker border
+
+**Result**: You can now see Bob's relationships, properties, and connections without losing your current view
+
+### Requirements
+
+The node expansion feature requires:
+
+1. **SPARQL 1.1 DESCRIBE support**: Your endpoint must support DESCRIBE queries
+2. **Query execution callback**: YASR must provide `yasr.executeQuery()` for background queries
+3. **RDF response format**: Endpoint must return results in RDF (JSON-LD, Turtle, N-Triples, etc.)
+
+### Limitations & Behavior
+
+- Only new triples are added (existing triples are skipped if already in graph)
+- Expansion is **one-level deep** - only triples directly about the URI are added
+- For very large result sets (1000+ triples from DESCRIBE), performance may be affected
+- Blank nodes returned by DESCRIBE may not connect properly if disconnected from existing nodes
+
+### Troubleshooting Expansion
+
+**"Nothing happens when I double-click"**
+- Ensure the node is blue (URI node, not literal or blank node)
+- Check browser console for warnings about `yasr.executeQuery`
+- Verify your SPARQL endpoint supports DESCRIBE queries
+
+**"Graph becomes slow after many expansions"**
+- Disable physics simulation in Settings panel for faster UI response
+- Consider limiting query results with WHERE clause constraints
+- Each expansion adds more triples to the visualization
+
+**"New nodes don't appear where I expect"**
+- The force-directed layout will position new nodes to minimize overlaps
+- Disable Physics in Settings to lock positions if desired
+- Manually drag new nodes to preferred positions
+
+### Demo
+
+See [demo/expand.html](./demo/expand.html) for a working example with mock DESCRIBE responses and detailed logging.
+
+## �🔧 Development
 
 ### Build
 
@@ -272,6 +367,7 @@ npm run format  # Prettier format
 ## 📚 Documentation
 
 - **[Quickstart Guide](./specs/001-construct-graph-viz/quickstart.md)** - Installation, usage, troubleshooting
+- **[Node Expansion Feature](./specs/001-construct-graph-viz/EXPAND_FEATURE.md)** - Complete guide to double-click expansion (FR-001 through FR-009)
 - **[Data Model](./specs/001-construct-graph-viz/data-model.md)** - Entity definitions and relationships
 - **[Contracts](./specs/001-construct-graph-viz/contracts/)** - API specifications for YASR plugin and vis-network integration
 - **[Specification](./specs/001-construct-graph-viz/spec.md)** - Complete feature specification
@@ -312,19 +408,18 @@ Contributions welcome! Please follow the project constitution (`.specify/memory/
 **Current Version**: 0.1.0 (MVP)
 
 **Implemented Features** (v0.1.0):
-- ✅ Basic graph visualization (US1)
-- ✅ Navigation controls (US2)
-- ✅ Color-coded nodes
-- ✅ Prefix abbreviation
-- ✅ Blank node support
-- ✅ Performance optimization
-
-**Planned Features** (Future):
-- ⏳ Enhanced tooltips with datatype display (US4)
-- ⏳ Manual testing across all browsers (US3 verification)
-- ⏳ Large graph optimization (>1k nodes)
-- ⏳ Custom color schemes
-- ⏳ Layout algorithm selection
+- ✅ **Basic graph visualization** (US1) - CONSTRUCT/DESCRIBE results as interactive graphs
+- ✅ **Navigation controls** (US2) - Zoom, pan, "Fit to View" button
+- ✅ **Color-coded nodes** - URIs, literals, blank nodes, rdf:type objects
+- ✅ **Prefix abbreviation** - Display prefixed URIs instead of full URLs
+- ✅ **Blank node support** - Handle anonymous RDF nodes
+- ✅ **Drag & repositioning** - Manually adjust node positions
+- ✅ **Rich tooltips** - Hover for detailed node/edge information
+- ✅ **Theme support** - Light/dark mode detection and switching
+- ✅ **Settings panel** - Configurable display options with localStorage persistence
+- ✅ **Node icons & images** - Display images via schema:image property
+- ✅ **Compact mode** - Hide literals and classes for cleaner visualization
+- ✅ **Double-click expansion** (US5) - Fetch and merge related triples via DESCRIBE queries (see [Expand Nodes with Double Click](#-expand-nodes-with-double-click))
 
 ## 🐛 Troubleshooting
 
