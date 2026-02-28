@@ -86,6 +86,7 @@ The standalone demo includes diverse test datasets:
 
 | Dataset | Description | Use Case |
 |---------|-------------|----------|
+| **Icons & Images** | Custom node visuals with schema:icon & schema:image | Visual customization demo |
 | **Basic Graph** | 2 people, simple relationships | Basic functionality |
 | **Social Network** | 5 people, multiple connections | Connected graph |
 | **Ontology** | Classes, properties, hierarchy | Ontology visualization |

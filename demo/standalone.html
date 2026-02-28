@@ -114,6 +114,7 @@
         <label>
             Dataset:
             <select id="dataset-selector">
+                <option value="iconsAndImages">Icons & Images Demo</option>
                 <option value="basic">Basic Graph (2 people)</option>
                 <option value="social">Social Network (5 people)</option>
                 <option value="ontology">Ontology Structure</option>
@@ -180,7 +181,7 @@
 
         // Initialize plugin
         let currentTheme = 'light';
-        let currentDataset = 'basic';
+        let currentDataset = 'iconsAndImages';
         let plugin = new GraphPlugin(createMockYasr(mockData[currentDataset]));
 
         // Draw the plugin
