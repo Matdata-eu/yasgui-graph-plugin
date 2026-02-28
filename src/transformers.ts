@@ -19,9 +19,9 @@ function escapeHtml(str: string): string {
 }
 
 /**
- * Build an HTML tooltip for a URI node in compact mode.
- * Includes the full URI, all rdf:type values, and all datatype (literal) properties.
- * @param uri - Full URI of the node
+ * Build an HTML tooltip for a URI or blank node in compact mode.
+ * Includes the full URI/identifier, all rdf:type values, and all datatype (literal) properties.
+ * @param uri - Full URI or blank node identifier
  * @param triples - All RDF triples (used to look up type and literal properties)
  * @param prefixMap - Namespace to prefix mappings
  * @returns HTML string for use as vis-network title
@@ -32,9 +32,10 @@ function createCompactNodeTooltipHTML(
   prefixMap: Map<string, string>
 ): string {
   const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+  const isBlankNode = uri.startsWith('_:');
 
-  let rows = `<div class="yasgui-tooltip-type">URI</div>`;
-  rows += `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">Full URI</span><span class="yasgui-tooltip-val">${escapeHtml(uri)}</span></div>`;
+  let rows = `<div class="yasgui-tooltip-type">${isBlankNode ? 'Blank Node' : 'URI'}</div>`;
+  rows += `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">${isBlankNode ? 'Identifier' : 'Full URI'}</span><span class="yasgui-tooltip-val">${escapeHtml(uri)}</span></div>`;
 
   // rdf:type values
   triples
@@ -86,6 +87,8 @@ function createNodeTooltipHTML(
     }
   } else if (nodeType === 'uri') {
     rows += `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">Full URI</span><span class="yasgui-tooltip-val">${escapeHtml(value)}</span></div>`;
+  } else if (nodeType === 'bnode') {
+    rows += `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">Identifier</span><span class="yasgui-tooltip-val">${escapeHtml(value)}</span></div>`;
   }
 
   return `<div class="yasgui-graph-tooltip">${rows}</div>`;
@@ -305,13 +308,13 @@ export function triplesToGraph(
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const nodeMap = createNodeMap(triples, prefixMap, themeColors, settings);
 
-  // In compact mode, enhance URI subject node tooltips with rdf:type and literal properties
+  // In compact mode, enhance subject node tooltips with rdf:type and literal properties
   if (settings?.compactMode) {
-    const subjectUris = new Set(triples.map((t) => t.subject).filter((s) => !s.startsWith('_:')));
-    subjectUris.forEach((uri) => {
-      const node = nodeMap.get(uri);
+    const subjects = new Set(triples.map((t) => t.subject));
+    subjects.forEach((subjectUri) => {
+      const node = nodeMap.get(subjectUri);
       if (node) {
-        node.title = createCompactNodeTooltipHTML(uri, triples, prefixMap);
+        node.title = createCompactNodeTooltipHTML(subjectUri, triples, prefixMap);
       }
     });
   }

@@ -84,6 +84,36 @@ describe('createNodeMap', () => {
     expect(blankNode).toBeDefined();
     expect(blankNode?.label).toBe('_:b0');
   });
+
+  it('creates tooltips for blank node subjects with identifier', () => {
+    const triples: RDFTriple[] = [
+      {
+        subject: '_:b0',
+        predicate: 'http://example.org/name',
+        object: { value: 'Blank', type: 'literal' },
+      },
+    ];
+    const nodeMap = createNodeMap(triples, new Map(), themeColors);
+    const blankNode = nodeMap.get('_:b0');
+    expect(blankNode?.title).toContain('Blank Node');
+    expect(blankNode?.title).toContain('_:b0');
+    expect(blankNode?.title).toContain('Identifier');
+  });
+
+  it('creates tooltips for blank node objects with identifier', () => {
+    const triples: RDFTriple[] = [
+      {
+        subject: 'http://example.org/alice',
+        predicate: 'http://example.org/knows',
+        object: { value: '_:b1', type: 'uri' },
+      },
+    ];
+    const nodeMap = createNodeMap(triples, new Map(), themeColors);
+    const blankNode = nodeMap.get('_:b1');
+    expect(blankNode?.title).toContain('Blank Node');
+    expect(blankNode?.title).toContain('_:b1');
+    expect(blankNode?.title).toContain('Identifier');
+  });
 });
 
 describe('createEdgesArray', () => {
@@ -198,6 +228,29 @@ describe('triplesToGraph', () => {
     expect(aliceNode?.title).toContain('rdf:type');
     expect(aliceNode?.title).toContain('ex:Person');
     expect(aliceNode?.title).toContain('Alice');
+  });
+
+  it('adds rdf:type and literal properties to blank node compact tooltip', () => {
+    const bnodeTriples: RDFTriple[] = [
+      {
+        subject: '_:b0',
+        predicate: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
+        object: { value: 'http://example.org/Person', type: 'uri' },
+      },
+      {
+        subject: '_:b0',
+        predicate: 'http://example.org/name',
+        object: { value: 'Unknown', type: 'literal' },
+      },
+    ];
+    const { nodes } = triplesToGraph(bnodeTriples, prefixMap, themeColors, { compactMode: true });
+    const blankNode = nodes.find((n) => n.uri === '_:b0');
+    expect(blankNode).toBeDefined();
+    expect(blankNode?.title).toContain('Blank Node');
+    expect(blankNode?.title).toContain('_:b0');
+    expect(blankNode?.title).toContain('rdf:type');
+    expect(blankNode?.title).toContain('ex:Person');
+    expect(blankNode?.title).toContain('Unknown');
   });
 
   it('uses icon labels when predicateDisplay is "icon" and predicate is known', () => {
