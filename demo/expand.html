@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<!--
+  YASGUI Graph Plugin – Node Expansion Demo
+
+  Demonstrates the double-click-to-expand feature introduced in PR #10.
+  A small initial graph is shown.  Double-clicking any blue URI node
+  fires a mock DESCRIBE query and merges the returned triples into the
+  live vis-network graph (no full redraw, positions are preserved).
+
+  To develop locally: npm run dev   (then open /demo/expand.html)
+  For production:    npm run build
+-->
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Graph Plugin – Node Expansion Demo</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    h1 { margin: 0; color: #333; font-size: 22px; }
+
+    .banner {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #2e7d32;
+      line-height: 1.6;
+    }
+
+    .banner strong { font-weight: 700; }
+
+    .legend {
+      background: white;
+      border-radius: 4px;
+      padding: 10px 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      font-size: 13px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .legend-title { font-weight: 700; color: #555; white-space: nowrap; }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .border-demo {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #97C2FC;
+      flex-shrink: 0;
+    }
+
+    .border-loading  { border: 3px solid #ffa500; }
+    .border-expanded { border: 3px solid #97C2FC; outline: 2px solid #97C2FC; }
+
+    #log {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 12px;
+      padding: 10px 14px;
+      border-radius: 4px;
+      max-height: 130px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    #log .ts  { color: #569cd6; margin-right: 6px; }
+    #log .ok  { color: #4ec9b0; }
+    #log .err { color: #f44747; }
+    #log .inf { color: #9cdcfe; }
+
+    #graph-container {
+      flex: 1;
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      overflow: hidden;
+      min-height: 420px;
+      position: relative;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🔷 Node Expansion Demo</h1>
+
+  <div class="banner">
+    <strong>How it works:</strong> The initial graph shows a small social network.
+    <strong>Double-click any blue URI node</strong> to fire a mock DESCRIBE query for that resource.
+    New triples are merged into the graph without a full redraw – existing node positions are preserved.
+    The activity log below shows each expansion event.
+  </div>
+
+  <div class="legend">
+    <span class="legend-title">Node border states:</span>
+    <span class="legend-item"><span class="dot border-demo border-loading"></span> Loading (DESCRIBE in flight)</span>
+    <span class="legend-item"><span class="dot border-demo border-expanded"></span> Expanded (triples merged)</span>
+    <span class="legend-title" style="margin-left:12px">Colors:</span>
+    <span class="legend-item"><span class="dot" style="background:#97C2FC"></span> URI node</span>
+    <span class="legend-item"><span class="dot" style="background:#a6c8a6ff"></span> rdf:type object</span>
+    <span class="legend-item"><span class="dot" style="background:#c5c5c5ff"></span> Literal</span>
+  </div>
+
+  <div id="log"><span class="inf ts">init</span><span class="inf">Loading plugin…</span></div>
+  <div id="graph-container"></div>
+
+  <script type="module">
+    /* ─── Activity log ──────────────────────────────────────────────────── */
+    const logEl = document.getElementById('log');
+    function addLog(msg, type = 'inf') {
+      const ts = new Date().toLocaleTimeString('en', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const line = document.createElement('div');
+      line.innerHTML = `<span class="ts">${ts}</span><span class="${type}">${msg}</span>`;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    /* ─── Initial graph data (the seed graph) ───────────────────────────── */
+    /**
+     * A small seed social network.
+     * Only Alice and Bob are shown at first; their full data and connections
+     * to colleagues / employers are returned by mock DESCRIBE queries.
+     */
+    const INITIAL_DATASET = {
+      head: { vars: ['subject', 'predicate', 'object'] },
+      results: {
+        bindings: [
+          // Alice
+          { subject: { type: 'uri', value: 'http://example.org/alice' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+            object:    { type: 'uri', value: 'http://xmlns.com/foaf/0.1/Person' } },
+          { subject: { type: 'uri', value: 'http://example.org/alice' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/name' },
+            object:    { type: 'literal', value: 'Alice' } },
+          { subject: { type: 'uri', value: 'http://example.org/alice' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/knows' },
+            object:    { type: 'uri', value: 'http://example.org/bob' } },
+
+          // Bob
+          { subject: { type: 'uri', value: 'http://example.org/bob' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+            object:    { type: 'uri', value: 'http://xmlns.com/foaf/0.1/Person' } },
+          { subject: { type: 'uri', value: 'http://example.org/bob' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/name' },
+            object:    { type: 'literal', value: 'Bob' } },
+        ],
+      },
+      prefixes: {
+        ex:   'http://example.org/',
+        foaf: 'http://xmlns.com/foaf/0.1/',
+        rdf:  'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+        org:  'http://www.w3.org/ns/org#',
+        xsd:  'http://www.w3.org/2001/XMLSchema#',
+      },
+    };
+
+    /* ─── Mock DESCRIBE responses ────────────────────────────────────────── */
+    /**
+     * These objects simulate what a real SPARQL endpoint would return for
+     * DESCRIBE <uri> queries.  Each value is a SPARQL JSON result set with
+     * subject/predicate/object bindings.
+     */
+    const MOCK_DESCRIBE_DATA = {
+      'http://example.org/alice': {
+        results: { bindings: [
+          { subject: { type: 'uri', value: 'http://example.org/alice' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/mbox' },
+            object:    { type: 'literal', value: 'alice@example.org' } },
+          { subject: { type: 'uri', value: 'http://example.org/alice' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/age' },
+            object:    { type: 'literal', value: '30', datatype: 'http://www.w3.org/2001/XMLSchema#integer' } },
+          { subject: { type: 'uri', value: 'http://example.org/alice' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#memberOf' },
+            object:    { type: 'uri', value: 'http://example.org/acme-corp' } },
+          { subject: { type: 'uri', value: 'http://example.org/alice' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/knows' },
+            object:    { type: 'uri', value: 'http://example.org/carol' } },
+          // Extra data about the org so it has a label
+          { subject: { type: 'uri', value: 'http://example.org/acme-corp' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+            object:    { type: 'uri', value: 'http://www.w3.org/ns/org#Organization' } },
+          { subject: { type: 'uri', value: 'http://example.org/acme-corp' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#label' },
+            object:    { type: 'literal', value: 'ACME Corporation' } },
+          // Carol stub
+          { subject: { type: 'uri', value: 'http://example.org/carol' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/name' },
+            object:    { type: 'literal', value: 'Carol' } },
+        ]},
+      },
+
+      'http://example.org/bob': {
+        results: { bindings: [
+          { subject: { type: 'uri', value: 'http://example.org/bob' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/mbox' },
+            object:    { type: 'literal', value: 'bob@example.org' } },
+          { subject: { type: 'uri', value: 'http://example.org/bob' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/age' },
+            object:    { type: 'literal', value: '28', datatype: 'http://www.w3.org/2001/XMLSchema#integer' } },
+          { subject: { type: 'uri', value: 'http://example.org/bob' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#memberOf' },
+            object:    { type: 'uri', value: 'http://example.org/acme-corp' } },
+          { subject: { type: 'uri', value: 'http://example.org/bob' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/knows' },
+            object:    { type: 'uri', value: 'http://example.org/dave' } },
+          // Dave stub
+          { subject: { type: 'uri', value: 'http://example.org/dave' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/name' },
+            object:    { type: 'literal', value: 'Dave' } },
+          { subject: { type: 'uri', value: 'http://example.org/dave' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+            object:    { type: 'uri', value: 'http://xmlns.com/foaf/0.1/Person' } },
+        ]},
+      },
+
+      'http://example.org/carol': {
+        results: { bindings: [
+          { subject: { type: 'uri', value: 'http://example.org/carol' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+            object:    { type: 'uri', value: 'http://xmlns.com/foaf/0.1/Person' } },
+          { subject: { type: 'uri', value: 'http://example.org/carol' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/mbox' },
+            object:    { type: 'literal', value: 'carol@example.org' } },
+          { subject: { type: 'uri', value: 'http://example.org/carol' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/knows' },
+            object:    { type: 'uri', value: 'http://example.org/dave' } },
+          { subject: { type: 'uri', value: 'http://example.org/carol' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#memberOf' },
+            object:    { type: 'uri', value: 'http://example.org/tech-startup' } },
+          { subject: { type: 'uri', value: 'http://example.org/tech-startup' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#label' },
+            object:    { type: 'literal', value: 'TechStart Inc.' } },
+        ]},
+      },
+
+      'http://example.org/dave': {
+        results: { bindings: [
+          { subject: { type: 'uri', value: 'http://example.org/dave' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/mbox' },
+            object:    { type: 'literal', value: 'dave@example.org' } },
+          { subject: { type: 'uri', value: 'http://example.org/dave' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/knows' },
+            object:    { type: 'uri', value: 'http://example.org/alice' } },
+          { subject: { type: 'uri', value: 'http://example.org/dave' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#memberOf' },
+            object:    { type: 'uri', value: 'http://example.org/tech-startup' } },
+        ]},
+      },
+
+      'http://example.org/acme-corp': {
+        results: { bindings: [
+          { subject: { type: 'uri', value: 'http://example.org/acme-corp' },
+            predicate: { type: 'uri', value: 'http://xmlns.com/foaf/0.1/homepage' },
+            object:    { type: 'uri', value: 'https://example.org/acme' } },
+          { subject: { type: 'uri', value: 'http://example.org/acme-corp' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#hasMember' },
+            object:    { type: 'uri', value: 'http://example.org/alice' } },
+          { subject: { type: 'uri', value: 'http://example.org/acme-corp' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#hasMember' },
+            object:    { type: 'uri', value: 'http://example.org/bob' } },
+        ]},
+      },
+
+      'http://example.org/tech-startup': {
+        results: { bindings: [
+          { subject: { type: 'uri', value: 'http://example.org/tech-startup' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+            object:    { type: 'uri', value: 'http://www.w3.org/ns/org#Organization' } },
+          { subject: { type: 'uri', value: 'http://example.org/tech-startup' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#hasMember' },
+            object:    { type: 'uri', value: 'http://example.org/carol' } },
+          { subject: { type: 'uri', value: 'http://example.org/tech-startup' },
+            predicate: { type: 'uri', value: 'http://www.w3.org/ns/org#hasMember' },
+            object:    { type: 'uri', value: 'http://example.org/dave' } },
+        ]},
+      },
+    };
+
+    /* ─── Mock executeQuery ─────────────────────────────────────────────── */
+    /**
+     * Simulates yasr.executeQuery().
+     * Parses the URI from the DESCRIBE query string and returns a mock response
+     * in Fetch API style ({ json: async () => data }).
+     * An artificial 600 ms delay makes the orange loading border visible.
+     */
+    function mockExecuteQuery(query, _options) {
+      const match = query.match(/DESCRIBE\s+<([^>]+)>/i);
+      const uri = match ? match[1] : null;
+      addLog(`⟶ DESCRIBE &lt;${uri}&gt;`, 'inf');
+
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const data = MOCK_DESCRIBE_DATA[uri];
+          if (data) {
+            const tripleCount = data.results.bindings.length;
+            addLog(`⟵ ${tripleCount} triples returned for &lt;${uri}&gt;`, 'ok');
+            resolve({ json: async () => data });
+          } else {
+            addLog(`⟵ No mock data for &lt;${uri}&gt; – returning empty result`, 'err');
+            resolve({ json: async () => ({ results: { bindings: [] } }) });
+          }
+        }, 600);
+      });
+    }
+
+    /* ─── Bootstrap ─────────────────────────────────────────────────────── */
+    (async () => {
+      // Load plugin using the Vite alias configured in vite.config.ts.
+      // In dev mode this resolves to src/index.ts; in a production build
+      // it resolves to the built bundle.
+      let GraphPlugin;
+      try {
+        const module = await import('@matdata/yasgui-graph-plugin');
+        GraphPlugin = module.default;
+        addLog('Plugin loaded', 'ok');
+      } catch (e) {
+        addLog(`Failed to load plugin: ${e.message}`, 'err');
+        return;
+      }
+
+      // Build mock YASR with executeQuery wired to mock data
+      const mockYasr = {
+        config: { pluginsOptions: { Graph: {} } },
+        results: {
+          getBindings: () => INITIAL_DATASET.results.bindings,
+          head: INITIAL_DATASET.head,
+          results: INITIAL_DATASET.results,
+        },
+        resultsEl: document.getElementById('graph-container'),
+        getPrefixes: () => INITIAL_DATASET.prefixes,
+        executeQuery: mockExecuteQuery,
+      };
+
+      const plugin = new GraphPlugin(mockYasr);
+      await plugin.draw();
+
+      const tripleCount = INITIAL_DATASET.results.bindings.length;
+      addLog(`Initial graph drawn – ${tripleCount} triples, ${Object.keys(MOCK_DESCRIBE_DATA).length} mock DESCRIBE responses available`, 'ok');
+      addLog('Double-click any blue URI node to expand it', 'inf');
+    })();
+  </script>
+</body>
+
+</html>
