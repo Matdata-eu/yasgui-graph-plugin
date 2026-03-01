@@ -37,7 +37,7 @@
   padding: 8px 12px;
   background: var(--yasgui-graph-button-bg);
   color: var(--yasgui-graph-button-text);
-  border: none;
+  border: 1px solid var(--yasgui-graph-button-border);
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
@@ -59,10 +59,9 @@
   top: 50px;
   right: 10px;
   z-index: 10001;
-  background: var(--yasgui-graph-button-bg, #4caf50);
-  background: var(--yasgui-bg-primary, #ffffff);
-  color: var(--yasgui-graph-text, #333333);
-  border: 1px solid var(--yasgui-border-color, #cccccc);
+  background: var(--yasgui-graph-button-bg);
+  color: var(--yasgui-graph-button-text);
+  border: 1px solid var(--yasgui-graph-button-border, #cccccc);
   border-radius: 6px;
   padding: 12px 14px;
   min-width: 240px;

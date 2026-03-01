@@ -739,18 +739,24 @@ class GraphPlugin {
         originalColor = node.color;
         originalBorderWidth = node.borderWidth;
       }
+      // Apply loading indicator: orange border, visible in all node states (normal, selected, hover)
+      const loadingBackground = typeof originalColor === 'string' ? originalColor : undefined;
       this.nodesDataSet.update({
         id: nodeId,
         borderWidth: LOADING_BORDER_WIDTH,
-        color: typeof originalColor === 'object' && originalColor !== null
-          ? { ...originalColor, border: LOADING_BORDER_COLOR }
-          : { border: LOADING_BORDER_COLOR, background: originalColor ?? undefined },
+        borderWidthSelected: LOADING_BORDER_WIDTH,
+        color: {
+          border: LOADING_BORDER_COLOR,
+          background: loadingBackground,
+          highlight: { border: LOADING_BORDER_COLOR, background: loadingBackground },
+          hover: { border: LOADING_BORDER_COLOR, background: loadingBackground },
+        },
       });
     }
 
     const restoreNode = (borderWidth: number) => {
       if (nodeId !== undefined) {
-        this.nodesDataSet.update({ id: nodeId, borderWidth, color: originalColor });
+        this.nodesDataSet.update({ id: nodeId, borderWidth, borderWidthSelected: borderWidth, color: originalColor });
       }
     };
 
