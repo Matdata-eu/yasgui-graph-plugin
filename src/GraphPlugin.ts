@@ -206,7 +206,7 @@ class GraphPlugin {
       });
       
       // Setup double-click to expand nodes
-      this.setupNodeExpansion(container);
+      this.setupNodeExpansion();
       
       // Build URI→node-ID map for incremental expansion merges (URI nodes only)
       this.uriToNodeId = new Map();
@@ -694,21 +694,8 @@ class GraphPlugin {
   /**
    * Setup double-click handler for node expansion
    */
-  private setupNodeExpansion(container: HTMLElement): void {
+  private setupNodeExpansion(): void {
     if (!this.network) return;
-
-    this.network.on('hoverNode', (params: any) => {
-      const node = this.nodesDataSet.get(params.node);
-      if (node && node.uri && !node.uri.startsWith('_:')) {
-        container.style.cursor = 'zoom-in';
-      } else {
-        container.style.cursor = '';
-      }
-    });
-
-    this.network.on('blurNode', () => {
-      container.style.cursor = '';
-    });
 
     this.network.on('doubleClick', (params: any) => {
       if (params.nodes.length === 0) return;
@@ -752,18 +739,24 @@ class GraphPlugin {
         originalColor = node.color;
         originalBorderWidth = node.borderWidth;
       }
+      // Apply loading indicator: orange border, visible in all node states (normal, selected, hover)
+      const loadingBackground = typeof originalColor === 'string' ? originalColor : undefined;
       this.nodesDataSet.update({
         id: nodeId,
         borderWidth: LOADING_BORDER_WIDTH,
-        color: typeof originalColor === 'object' && originalColor !== null
-          ? { ...originalColor, border: LOADING_BORDER_COLOR }
-          : { border: LOADING_BORDER_COLOR, background: originalColor ?? undefined },
+        borderWidthSelected: LOADING_BORDER_WIDTH,
+        color: {
+          border: LOADING_BORDER_COLOR,
+          background: loadingBackground,
+          highlight: { border: LOADING_BORDER_COLOR, background: loadingBackground },
+          hover: { border: LOADING_BORDER_COLOR, background: loadingBackground },
+        },
       });
     }
 
     const restoreNode = (borderWidth: number) => {
       if (nodeId !== undefined) {
-        this.nodesDataSet.update({ id: nodeId, borderWidth, color: originalColor });
+        this.nodesDataSet.update({ id: nodeId, borderWidth, borderWidthSelected: borderWidth, color: originalColor });
       }
     };
 
