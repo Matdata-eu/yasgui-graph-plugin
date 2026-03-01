@@ -15,9 +15,10 @@
 
   /* UI elements - using YASGUI variables with fallbacks */
   --yasgui-graph-canvas-bg: var(--yasgui-bg-primary, #ffffff);
-  --yasgui-graph-button-bg: var(--yasgui-accent-color, #4caf50);
-  --yasgui-graph-button-hover: var(--yasgui-link-hover, #45a049);
-  --yasgui-graph-button-text: var(--yasgui-button-text, #ffffff);
+  --yasgui-graph-button-bg: var(--yasgui-bg-secondary, #f0f0f0);
+  --yasgui-graph-button-hover: var(--yasgui-button-hover, #e0e0e0);
+  --yasgui-graph-button-text: var(--yasgui-text-primary, #333333);
+  --yasgui-graph-button-border: var(--yasgui-border-color, #cccccc);
   --yasgui-graph-empty-text: var(--yasgui-text-secondary, #666666);
   --yasgui-graph-error-text: #f44336;
 
@@ -66,4 +67,10 @@
   --yasgui-graph-background: var(--yasgui-bg-primary, #1e1e1e);
   --yasgui-graph-canvas-bg: var(--yasgui-bg-primary, #1e1e1e);
   --yasgui-graph-empty-text: var(--yasgui-text-secondary, #cccccc);
+
+  /* UI controls - dark mode fallbacks for when YASGUI variables are not in scope */
+  --yasgui-graph-button-bg: var(--yasgui-bg-secondary, #2a2a2a);
+  --yasgui-graph-button-hover: var(--yasgui-button-hover, #3a3a3a);
+  --yasgui-graph-button-text: var(--yasgui-text-primary, #e0e0e0);
+  --yasgui-graph-button-border: var(--yasgui-border-color, #555555);
 }
