@@ -206,7 +206,7 @@ class GraphPlugin {
       });
       
       // Setup double-click to expand nodes
-      this.setupNodeExpansion();
+      this.setupNodeExpansion(container);
       
       // Build URI→node-ID map for incremental expansion merges (URI nodes only)
       this.uriToNodeId = new Map();
@@ -694,8 +694,21 @@ class GraphPlugin {
   /**
    * Setup double-click handler for node expansion
    */
-  private setupNodeExpansion(): void {
+  private setupNodeExpansion(container: HTMLElement): void {
     if (!this.network) return;
+
+    this.network.on('hoverNode', (params: any) => {
+      const node = this.nodesDataSet.get(params.node);
+      if (node && node.uri && !node.uri.startsWith('_:')) {
+        container.style.cursor = 'zoom-in';
+      } else {
+        container.style.cursor = '';
+      }
+    });
+
+    this.network.on('blurNode', () => {
+      container.style.cursor = '';
+    });
 
     this.network.on('doubleClick', (params: any) => {
       if (params.nodes.length === 0) return;
