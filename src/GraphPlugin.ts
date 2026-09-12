@@ -68,7 +68,7 @@ class GraphPlugin {
    * Help/documentation URL
    */
   static get helpReference(): string {
-    return 'https://yasgui-doc.matdata.eu/docs/user-guide#graph-plugin';
+    return 'https://matgui-doc.matdata.eu/docs/user-guide#graph-plugin';
   }
 
   /**
