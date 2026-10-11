@@ -1,0 +1,48 @@
+publiccodeYmlVersion: '0'
+name: YASGUI Graph Plugin
+url: https://github.com/Matdata-eu/yasgui-graph-plugin
+landingURL: https://matdata-eu.github.io/yasgui-graph-plugin/
+softwareVersion: 1.6.2
+releaseDate: '2026-03-01'
+platforms:
+- web
+categories:
+- data-visualization
+- knowledge-management
+developmentStatus: stable
+softwareType: addon
+organisation:
+  uri: https://matdata.eu
+  name: Matdata
+intendedAudience:
+  scope:
+  - government
+  - science-and-technology
+  - infrastructures
+  - transportation
+description:
+  en:
+    shortDescription: Shows CONSTRUCT and DESCRIBE results as an interactive graph in YASGUI and MatGUI.
+    longDescription: |
+      This plugin shows the result of a SPARQL CONSTRUCT or DESCRIBE query as an interactive force-directed graph. That makes the shape of the returned data easy to see, which helps when exploring an unfamiliar knowledge graph or checking a mapping.
+
+      Nodes are coloured by kind (IRI, literal, blank node, class), can be dragged and pinned, and can be expanded with a double-click to load more triples. It works in YASGUI and in MatGUI, where it is included by default.
+    documentation: https://github.com/Matdata-eu/yasgui-graph-plugin#readme
+    features:
+    - Force-directed graph layout
+    - Colour coding for IRIs, literals, blank nodes and classes
+    - Double-click a node to load more triples
+    - Compact mode that hides literal and class nodes
+    - Light and dark theme
+legal:
+  license: Apache-2.0
+  mainCopyrightOwner: Matdata
+maintenance:
+  type: internal
+  contacts:
+  - name: Mathias Vanden Auweele
+    affiliation: Matdata
+localisation:
+  localisationReady: false
+  availableLanguages:
+  - en
