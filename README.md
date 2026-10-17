@@ -9,13 +9,15 @@ A YASGUI plugin for visualizing SPARQL CONSTRUCT and DESCRIBE query results as i
 
 - **🔷 Interactive Graph Visualization**: Automatic force-directed layout with smooth physics-based positioning
 - **🎨 Smart Color Coding**: 
-  - 🔵 Light Blue (#97C2FC) = URIs
-  - 🟢 Light Green (#a6c8a6ff) = Literals
-  - ⚪ Light Grey (#c5c5c5ff) = Blank nodes
-  - 🟠 Orange (#e15b13ff) = rdf:type objects (classes)
+  - Brand blue (`--yasgui-brand`, fallback #0563bb) = resources (URIs)
+  - Ink (`--yasgui-ink`, fallback #1c2633) = literals
+  - Light grey (#c5c5c5ff) = blank nodes
+  - Orange (#e15b13ff) = rdf:type objects (classes)
+  - Amber (`--yasgui-highlight`, fallback #f2b300) = the selected node
 - **🖼️ Node Icons & Images**: Render images or emoji/icons on nodes via `schema:image` / `schema:icon` properties (see [Node icons and images](#node-icons-and-images))
 - **� Compact Mode**: Hide literal and class nodes; show rdf:type and datatype properties in enhanced tooltips instead
-- **🔍 Navigation**: Mouse wheel zoom, drag to pan, "Zoom to Fit" button
+- **🔍 Navigation**: Mouse wheel zoom, drag to pan, "Zoom to fit" button
+- **Shared toolbar and describe panel**: On a yasr with the host API the controls move into the yasr plugin toolbar and Ctrl+click (Cmd+click on macOS) opens the shared describe panel (see [Host integration](#host-integration-shared-toolbar-and-describe-panel))
 - **✋ Drag & Drop**: Reorganize nodes by dragging them to new positions (nodes stay pinned after manual drag)
 - **� Node Expansion**: Double-click any URI node to fetch and merge related triples via DESCRIBE queries (see [Expand Nodes with Double Click](#-expand-nodes-with-double-click))
 - **�💬 Rich Tooltips**: Modern HTML tooltips with node type, value, namespace, and datatype information
@@ -102,21 +104,35 @@ After running the query, click the **"Graph"** tab to see the visualization.
 ### Navigation
 - **Zoom**: Mouse wheel (scroll up = zoom in, scroll down = zoom out)
 - **Pan**: Click and drag the background
-- **Fit to View**: Click the "Zoom to Fit" button to center the entire graph
+- **Fit to view**: Click "Zoom to fit" to center the entire graph
 
 ### Interaction
 - **Drag Nodes**: Click and drag any node to reposition it (nodes are automatically pinned in place after dragging)
 - **Expand Nodes**: 🆕 Double-click any blue URI node to fetch and merge additional RDF triples for that resource (see [Node Expansion](#expand-nodes-with-double-click) below)
+- **Describe**: Ctrl+click (Cmd+click on macOS) a resource node to open it in the shared yasr describe panel. Only on a yasr with the host API; elsewhere Ctrl+click behaves like a normal click
 - **Tooltips**: Hover over nodes/edges to see rich HTML tooltips with type, value, namespace, and datatype information
 
 ### Understanding Colors
 
 | Color | Meaning | Example |
 |-------|---------|---------||
-| 🔵 Light Blue (#97C2FC) | URI nodes | `ex:Person`, `ex:Alice` |
-| 🟢 Light Green (#a6c8a6ff) | Literal values | `"Alice"`, `"30"^^xsd:integer` |
-| ⚪ Light Grey (#c5c5c5ff) | Blank nodes | `_:b1`, `_:addr1` |
-| 🟠 Orange (#e15b13ff) | rdf:type objects (classes) | `ex:Person` in `ex:Alice rdf:type ex:Person` |
+| Brand blue (#0563bb, dark #5aa8f2) | Resource (URI) nodes | `ex:Alice` |
+| Ink (#1c2633, dark #eef1ef) | Literal values | `"Alice"`, `"30"^^xsd:integer` |
+| Light grey (#c5c5c5ff) | Blank nodes | `_:b1`, `_:addr1` |
+| Orange (#e15b13ff) | rdf:type objects (classes) | `ex:Person` in `ex:Alice rdf:type ex:Person` |
+| Amber (#f2b300, dark #f5c242) | The selected node or edge | |
+
+Colours are read from CSS custom properties, so you can override them. The plugin's own
+variables win; when they are not set, it uses the YASGUI theme tokens, then the fallbacks above:
+
+| Variable | Default |
+|----------|---------|
+| `--yasgui-graph-uri` | `var(--yasgui-brand, #0563bb)` |
+| `--yasgui-graph-literal` | `var(--yasgui-ink, #1c2633)` |
+| `--yasgui-graph-highlight` | `var(--yasgui-highlight, #f2b300)` |
+| `--yasgui-graph-blank-node`, `--yasgui-graph-type-object`, `--yasgui-graph-edge`, … | unchanged |
+
+To get the previous palette back, set for example `--yasgui-graph-uri: #97c2fc; --yasgui-graph-literal: #a6c8a6;`.
 
 ## ⚙️ Configuration
 
@@ -124,7 +140,9 @@ The plugin ships with sensible defaults and stores every change in **`localStora
 
 ### Settings panel
 
-Click the **⚙ Settings** button (top-right of the graph) to open the settings panel.
+Click **View settings** (far right of the yasr plugin toolbar) or, on a yasr without the host API, the **Settings** button in the top-right corner of the graph to open the settings panel.
+
+On a yasr with the host API, the toolbar also has direct controls for **Edges** (curved or straight), **Edge labels** (prefixed IRI, icon or hidden), **Compact** and **Zoom to fit**.
 
 | Setting | Values | Default | Description |
 |---------|--------|---------|-------------|
@@ -241,6 +259,29 @@ class CustomGraphPlugin extends GraphPlugin {
 
 Yasgui.Yasr.registerPlugin('customGraph', CustomGraphPlugin);
 ```
+
+## Host integration (shared toolbar and describe panel)
+
+Newer `@matdata/yasgui` / yasr builds expose a host API (version 1) that plugins can use to share
+one toolbar and one describe panel. The plugin feature-detects it on every draw and never checks
+version strings:
+
+```js
+const host = yasr.hostApi; // { version: 1, describe: true, toolbar: true } or undefined
+host?.toolbar && typeof yasr.getPluginToolbar === 'function'; // toolbar slot available
+host?.describe && typeof yasr.describe === 'function';        // shared describe panel available
+```
+
+| | yasr with host API | yasr without host API (published @matdata/yasgui today) |
+|---|---|---|
+| Controls | Rendered into `yasr.getPluginToolbar()` with the shared `.yasr_toolbar*` classes; View settings at the far right | Floating buttons in the top-right corner of the graph (unchanged) |
+| Ctrl/Cmd+click on a resource node | `yasr.describe(iri, { source: "Graph" })` opens the shared describe panel | Nothing new: behaves like a normal click |
+| Double-click | Expands the node (background DESCRIBE), unchanged. Ctrl/Cmd+double-click only describes | Expands the node, unchanged |
+| Settings, CSS variables, localStorage | Same | Same |
+
+Each capability is detected on its own: a yasr that advertises only `toolbar` gets the toolbar
+and no Ctrl+click describe, and the other way round. The floating buttons are deprecated and will
+be removed in the next major version; until then nothing changes for hosts without the API.
 
 ## � Expand Nodes with Double Click
 
