@@ -7,6 +7,11 @@ import { Network, DataSet } from 'vis-network/standalone';
 import { getCurrentTheme, getThemeNodeColors, watchThemeChanges } from './themeUtils';
 import { loadSettings, saveSettings } from './settings';
 import type { GraphPluginSettings } from './settings';
+import { withHighlightColor } from './colorUtils';
+import { getHostDescribe, getHostToolbar, DESCRIBE_SOURCE } from './hostApi';
+import { icon } from './icons';
+import type { IconName } from './icons';
+import type { GraphNode, ThemeColors } from './types';
 import '../styles/index.css';
 
 /** Border width while a DESCRIBE query is in-flight for a node */
@@ -17,6 +22,18 @@ const LOADING_BORDER_COLOR = '#ffa500';
 const EXPANDED_BORDER_WIDTH = 3;
 /** Default (restored) border width when expansion fails or is aborted */
 const DEFAULT_BORDER_WIDTH = 2;
+/** Ignore a repeated Ctrl+click describe of the same IRI within this window (the clicks of a double-click) */
+const DESCRIBE_DEDUPE_MS = 500;
+
+/** True when the click carried Ctrl (Windows/Linux) or Cmd (macOS) */
+function hasDescribeModifier(params: any): boolean {
+  const e = params?.event?.srcEvent ?? params?.event;
+  return !!(e && (e.ctrlKey || e.metaKey));
+}
+
+function isMacPlatform(): boolean {
+  return typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent || '');
+}
 
 /**
  * YASR plugin for visualizing SPARQL CONSTRUCT results as graphs
@@ -36,6 +53,13 @@ class GraphPlugin {
   private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
   private expansionAbortController: AbortController | null = null;
   private uriToNodeId: Map<string, number> = new Map();
+  /** Elements this plugin put into the host toolbar slot (host API only) */
+  private toolbarItems: HTMLElement[] = [];
+  /** The button that opens the settings panel (floating or toolbar) */
+  private settingsButton: HTMLButtonElement | null = null;
+  /** Key of the toolbar control to focus again after a settings redraw */
+  private pendingFocus: string | null = null;
+  private lastDescribe: { iri: string; at: number } | null = null;
 
   constructor(yasr: Yasr) {
     this.yasr = yasr;
@@ -115,6 +139,8 @@ class GraphPlugin {
     
     // Clear previous content
     this.yasr.resultsEl.innerHTML = '';
+    this.clearToolbar();
+    this.settingsButton = null;
     
     try {
       // Parse RDF triples from results
@@ -150,7 +176,7 @@ class GraphPlugin {
       this.yasr.resultsEl.appendChild(container);
       
       // Create vis-network DataSets
-      this.nodesDataSet = new DataSet(nodes);
+      this.nodesDataSet = new DataSet(this.prepareNodes(nodes, themeColors));
       this.edgesDataSet = new DataSet(edges);
       
       // Initialize network
@@ -207,6 +233,9 @@ class GraphPlugin {
       
       // Setup double-click to expand nodes
       this.setupNodeExpansion();
+
+      // Setup Ctrl/Cmd+click to open the host describe panel (host API only)
+      this.setupNodeDescribe();
       
       // Build URI→node-ID map for incremental expansion merges (URI nodes only)
       this.uriToNodeId = new Map();
@@ -223,35 +252,9 @@ class GraphPlugin {
         });
       }
       
-      // Add controls container AFTER network is created
-      const controls = document.createElement('div');
-      controls.className = 'yasgui-graph-controls';
-      container.appendChild(controls);
-      
-      // Add "Zoom to Fit" button
-      const fitButton = document.createElement('button');
-      fitButton.className = 'yasgui-graph-button';
-      fitButton.textContent = 'Zoom to Fit';
-      fitButton.onclick = () => {
-        if (this.network) {
-          this.network.fit({ maxZoomLevel: 1000.0, animation: { duration: 300, easingFunction: 'easeInOutQuad' } });
-        }
-      };
-      controls.appendChild(fitButton);
+      // Add controls AFTER network is created: host toolbar slot when available, floating buttons otherwise
+      this.renderControls(container);
 
-      // Add "Settings" button
-      const settingsButton = document.createElement('button');
-      settingsButton.className = 'yasgui-graph-button yasgui-graph-settings-button';
-      settingsButton.setAttribute('aria-label', 'Graph settings');
-      settingsButton.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M8 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
-        <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.434.901-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.892 3.434-.901 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.892-1.64-.901-3.434-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.474l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
-      </svg> Settings`;
-      settingsButton.onclick = () => {
-        this.toggleSettingsPanel(container);
-      };
-      controls.appendChild(settingsButton);
-      
       // Re-open settings panel if it was open before redraw
       if (wasPanelOpen) {
         this.toggleSettingsPanel(container);
@@ -427,7 +430,7 @@ class GraphPlugin {
     
     // Update DataSets
     this.nodesDataSet.clear();
-    this.nodesDataSet.add(nodes);
+    this.nodesDataSet.add(this.prepareNodes(nodes, themeColors));
     this.edgesDataSet.clear();
     this.edgesDataSet.add(edges);
 
@@ -506,10 +509,22 @@ class GraphPlugin {
       this.removeClickOutsideHandler();
     } else {
       const panel = this.createSettingsPanel(container);
+      if (this.toolbarItems.length > 0) {
+        // Docked under the host toolbar instead of under the floating buttons
+        panel.classList.add('yasgui-graph-settings-panel--docked');
+      }
       container.appendChild(panel);
       this.settingsPanelOpen = true;
       this.setupClickOutsideHandler(container, panel);
     }
+    this.syncSettingsButton();
+  }
+
+  /** Reflect the settings panel state on its button */
+  private syncSettingsButton(): void {
+    if (!this.settingsButton) return;
+    this.settingsButton.setAttribute('aria-expanded', String(this.settingsPanelOpen));
+    this.settingsButton.classList.toggle('is-active', this.settingsPanelOpen);
   }
 
   /**
@@ -574,7 +589,7 @@ class GraphPlugin {
 
     const title = document.createElement('div');
     title.className = 'yasgui-graph-settings-title';
-    title.textContent = 'Graph Settings';
+    title.textContent = 'Graph settings';
     panel.appendChild(title);
 
     // Helper: create a section header
@@ -700,6 +715,10 @@ class GraphPlugin {
     this.network.on('doubleClick', (params: any) => {
       if (params.nodes.length === 0) return;
 
+      // Ctrl/Cmd+double-click opens the host describe panel (via 'click'); don't also expand.
+      // Without the host API, Ctrl/Cmd+double-click still expands as before.
+      if (hasDescribeModifier(params) && getHostDescribe(this.yasr)) return;
+
       const nodeId = params.nodes[0];
       const node = this.nodesDataSet.get(nodeId);
 
@@ -708,6 +727,216 @@ class GraphPlugin {
         this.expandNode(node.uri);
       }
     });
+  }
+
+  /**
+   * Setup Ctrl+click (Cmd+click on macOS) on a resource node to open the host's
+   * shared describe panel. Only active when yasr exposes the host API; otherwise
+   * clicks behave exactly as before.
+   */
+  private setupNodeDescribe(): void {
+    if (!this.network) return;
+
+    this.network.on('click', (params: any) => {
+      if (!params || !params.nodes || params.nodes.length === 0) return;
+      if (!hasDescribeModifier(params)) return;
+      const describe = getHostDescribe(this.yasr);
+      if (!describe) return;
+
+      const node = this.nodesDataSet.get(params.nodes[0]);
+      const iri = this.getResourceIri(node);
+      if (!iri) return;
+
+      // The two clicks of a Ctrl+double-click must not open the panel twice
+      const now = Date.now();
+      if (this.lastDescribe && this.lastDescribe.iri === iri && now - this.lastDescribe.at < DESCRIBE_DEDUPE_MS) {
+        return;
+      }
+      this.lastDescribe = { iri, at: now };
+
+      try {
+        Promise.resolve(describe(iri, { source: DESCRIBE_SOURCE })).catch((error) => {
+          console.error('yasgui-graph-plugin: describe failed', iri, error);
+        });
+      } catch (error) {
+        console.error('yasgui-graph-plugin: describe failed', iri, error);
+      }
+    });
+  }
+
+  /**
+   * IRI of a resource node, or null for literals and blank nodes
+   */
+  private getResourceIri(node: any): string | null {
+    if (!node || node.type === 'literal' || typeof node.uri !== 'string') return null;
+    if (node.uri.startsWith('_:')) return null;
+    return node.uri;
+  }
+
+  /**
+   * Convert transformer nodes into vis-network nodes: apply the highlight colour
+   * for the selected state and, when the host describe panel is available, add
+   * the Ctrl/Cmd+click hint to resource tooltips.
+   */
+  private prepareNodes(nodes: GraphNode[], themeColors: ThemeColors): any[] {
+    const canDescribe = !!getHostDescribe(this.yasr);
+    const hint = `<div class="yasgui-tooltip-hint">${isMacPlatform() ? 'Cmd' : 'Ctrl'}+click to describe</div>`;
+    return nodes.map((node) => {
+      const prepared: any = { ...node, color: withHighlightColor(node.color, themeColors.highlight) };
+      if (canDescribe && this.getResourceIri(node) && typeof node.title === 'string') {
+        prepared.title = node.title.replace(/<\/div>\s*$/, `${hint}</div>`);
+        if (prepared.title === node.title) prepared.title = node.title + hint;
+      }
+      return prepared;
+    });
+  }
+
+  /**
+   * Render the graph controls: into the host toolbar slot when yasr provides one,
+   * otherwise as the floating buttons over the graph.
+   * @param container - The graph container element
+   */
+  private renderControls(container: HTMLElement): void {
+    const bar = getHostToolbar(this.yasr);
+    if (bar) {
+      this.renderHostToolbar(bar, container);
+    } else {
+      this.renderFloatingControls(container);
+    }
+    this.syncSettingsButton();
+  }
+
+  /**
+   * Floating buttons in the top-right corner of the graph (yasr without host toolbar).
+   * @deprecated Kept as the fallback for yasr builds without `getPluginToolbar`; to be removed in the next major.
+   */
+  private renderFloatingControls(container: HTMLElement): void {
+    const controls = document.createElement('div');
+    controls.className = 'yasgui-graph-controls';
+    container.appendChild(controls);
+
+    const fitButton = document.createElement('button');
+    fitButton.type = 'button';
+    fitButton.className = 'yasgui-graph-button';
+    fitButton.innerHTML = `${icon('maximize', 14)}<span>Zoom to fit</span>`;
+    fitButton.onclick = () => this.zoomToFit();
+    controls.appendChild(fitButton);
+
+    const settingsButton = document.createElement('button');
+    settingsButton.type = 'button';
+    settingsButton.className = 'yasgui-graph-button yasgui-graph-settings-button';
+    settingsButton.setAttribute('aria-label', 'Graph settings');
+    settingsButton.setAttribute('aria-haspopup', 'dialog');
+    settingsButton.innerHTML = `${icon('slidersHorizontal', 14)}<span>Settings</span>`;
+    settingsButton.onclick = () => this.toggleSettingsPanel(container);
+    controls.appendChild(settingsButton);
+    this.settingsButton = settingsButton;
+  }
+
+  /**
+   * Controls in the shared yasr plugin toolbar (host API), styled by yasr's
+   * .yasr_toolbar* classes. View settings sits at the far right.
+   */
+  private renderHostToolbar(bar: HTMLDivElement, container: HTMLElement): void {
+    const add = (el: HTMLElement) => {
+      bar.appendChild(el);
+      this.toolbarItems.push(el);
+    };
+
+    const group = document.createElement('div');
+    group.className = 'yasr_toolbarGroup yasgui-graph-toolbar';
+
+    const changeSetting = <K extends keyof GraphPluginSettings>(key: K, value: GraphPluginSettings[K]) => {
+      this.settings[key] = value;
+      saveSettings(this.settings);
+      this.pendingFocus = String(key);
+      this.draw();
+    };
+
+    const addSelect = <K extends 'edgeStyle' | 'predicateDisplay'>(
+      key: K,
+      label: string,
+      options: { value: GraphPluginSettings[K]; label: string }[]
+    ) => {
+      const wrapper = document.createElement('label');
+      wrapper.className = 'yasr_toolbarSelect';
+      const span = document.createElement('span');
+      span.textContent = label;
+      const select = document.createElement('select');
+      select.dataset.graphControl = key;
+      options.forEach((o) => {
+        const opt = document.createElement('option');
+        opt.value = o.value;
+        opt.textContent = o.label;
+        if (o.value === this.settings[key]) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.addEventListener('change', () => changeSetting(key, select.value as GraphPluginSettings[K]));
+      wrapper.appendChild(span);
+      wrapper.appendChild(select);
+      group.appendChild(wrapper);
+    };
+
+    const makeButton = (key: string, label: string, iconName?: IconName) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'yasr_toolbarButton';
+      button.dataset.graphControl = key;
+      button.innerHTML = `${iconName ? icon(iconName) : ''}<span>${label}</span>`;
+      return button;
+    };
+
+    addSelect('edgeStyle', 'Edges', [
+      { value: 'curved', label: 'Curved' },
+      { value: 'straight', label: 'Straight' },
+    ]);
+    addSelect('predicateDisplay', 'Edge labels', [
+      { value: 'label', label: 'Prefixed IRI' },
+      { value: 'icon', label: 'Icon' },
+      { value: 'none', label: 'Hidden' },
+    ]);
+
+    const compact = makeButton('compactMode', 'Compact', 'minimize2');
+    compact.setAttribute('aria-pressed', String(this.settings.compactMode));
+    compact.title = 'Hide literal and class nodes; show them in tooltips';
+    compact.addEventListener('click', () => changeSetting('compactMode', !this.settings.compactMode));
+    group.appendChild(compact);
+
+    const fit = makeButton('zoomToFit', 'Zoom to fit', 'maximize');
+    fit.addEventListener('click', () => this.zoomToFit());
+    group.appendChild(fit);
+
+    add(group);
+
+    const spacer = document.createElement('div');
+    spacer.className = 'yasr_toolbarSpacer';
+    add(spacer);
+
+    const settingsButton = makeButton('viewSettings', 'View settings', 'slidersHorizontal');
+    settingsButton.classList.add('yasgui-graph-settings-button');
+    settingsButton.setAttribute('aria-haspopup', 'dialog');
+    settingsButton.addEventListener('click', () => this.toggleSettingsPanel(container));
+    add(settingsButton);
+    this.settingsButton = settingsButton;
+
+    if (this.pendingFocus) {
+      const target = bar.querySelector<HTMLElement>(`[data-graph-control="${this.pendingFocus}"]`);
+      this.pendingFocus = null;
+      target?.focus();
+    }
+  }
+
+  /** Remove the elements this plugin added to the host toolbar slot */
+  private clearToolbar(): void {
+    this.toolbarItems.forEach((el) => el.remove());
+    this.toolbarItems = [];
+  }
+
+  /** Fit the whole graph into view */
+  private zoomToFit(): void {
+    if (this.network) {
+      this.network.fit({ maxZoomLevel: 1000.0, animation: { duration: 300, easingFunction: 'easeInOutQuad' } });
+    }
   }
 
   /**
@@ -740,7 +969,8 @@ class GraphPlugin {
         originalBorderWidth = node.borderWidth;
       }
       // Apply loading indicator: orange border, visible in all node states (normal, selected, hover)
-      const loadingBackground = typeof originalColor === 'string' ? originalColor : undefined;
+      const loadingBackground =
+        typeof originalColor === 'string' ? originalColor : originalColor?.background;
       this.nodesDataSet.update({
         id: nodeId,
         borderWidth: LOADING_BORDER_WIDTH,
@@ -830,7 +1060,7 @@ class GraphPlugin {
     );
 
     if (nodesToAdd.length > 0) {
-      this.nodesDataSet.add(nodesToAdd);
+      this.nodesDataSet.add(this.prepareNodes(nodesToAdd, themeColors));
       // Update uriToNodeId map with newly added URI nodes only
       nodesToAdd.forEach((n: any) => {
         if (n.uri != null) {
@@ -847,21 +1077,11 @@ class GraphPlugin {
    * @returns Icon element
    */
   getIcon(): HTMLElement {
-    const icon = document.createElement('div');
-    icon.className = 'yasgui-graph-icon';
-    icon.setAttribute('aria-label', 'Graph visualization');
-    
-    // Create SVG icon for graph visualization
-    icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="3" cy="3" r="2" />
-      <circle cx="13" cy="3" r="2" />
-      <circle cx="8" cy="13" r="2" />
-      <line x1="4.5" y1="4" x2="7" y2="11.5" stroke="currentColor" stroke-width="1.5" />
-      <line x1="11.5" y1="4" x2="9" y2="11.5" stroke="currentColor" stroke-width="1.5" />
-      <line x1="5" y1="3" x2="11" y2="3" stroke="currentColor" stroke-width="1.5" />
-    </svg>`;
-    
-    return icon;
+    const iconEl = document.createElement('div');
+    iconEl.className = 'yasgui-graph-icon';
+    iconEl.setAttribute('aria-label', 'Graph visualization');
+    iconEl.innerHTML = icon('share2');
+    return iconEl;
   }
   
   /**
@@ -869,6 +1089,8 @@ class GraphPlugin {
    */
   destroy(): void {
     this.removeClickOutsideHandler();
+    this.clearToolbar();
+    this.settingsButton = null;
     if (this.expansionAbortController) {
       this.expansionAbortController.abort();
       this.expansionAbortController = null;

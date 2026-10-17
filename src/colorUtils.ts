@@ -36,3 +36,29 @@ export function getNodeColor(
   // Other URIs
   return themeColors.uri;
 }
+
+/** vis-network node colour object */
+export interface VisNodeColor {
+  background: string;
+  border: string;
+  highlight: { background: string; border: string };
+  hover: { background: string; border: string };
+}
+
+/**
+ * Expand a flat node colour into a vis-network colour object whose selected
+ * (highlighted) state uses the theme highlight colour (amber).
+ * Without a highlight colour the flat colour is returned unchanged, so vis-network
+ * keeps deriving the selected state itself (previous behaviour).
+ * @param color - Flat node colour from getNodeColor()
+ * @param highlight - Highlight colour, e.g. ThemeColors.highlight
+ */
+export function withHighlightColor(color: string, highlight?: string): string | VisNodeColor {
+  if (!highlight || typeof color !== 'string') return color;
+  return {
+    background: color,
+    border: color,
+    highlight: { background: highlight, border: highlight },
+    hover: { background: color, border: color },
+  };
+}

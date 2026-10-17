@@ -55,6 +55,8 @@ export interface ThemeColors {
   edge: string;
   edgeLabel: string;
   edgeLabelBackground: string;
+  /** Colour of the one highlighted (selected) item. Optional for backwards compatibility. */
+  highlight?: string;
 }
 
 // vis-network types
@@ -118,6 +120,8 @@ export interface NetworkOptions {
     };
     color: {
       color: string;
+      highlight?: string;
+      hover?: string;
     };
   };
 }
@@ -139,9 +143,31 @@ export interface PluginQueryOptions {
   signal?: AbortSignal;
 }
 
+/** Capabilities advertised by a yasr that implements the host API (version 1). */
+export interface YasrHostApi {
+  version: number;
+  describe?: boolean;
+  toolbar?: boolean;
+}
+
+export interface YasrDescribeOptions {
+  direction?: 'outgoing' | 'incoming';
+  /** Label of the calling view, shown as "Opened from <source>" */
+  source?: string;
+  newHistory?: boolean;
+}
+
 export interface Yasr {
   results: YasrResults;
   resultsEl: HTMLElement;
   getPrefixes?(): Record<string, string>;
   executeQuery?(query: string, options?: PluginQueryOptions): Promise<any>;
+  /** Present on yasr builds with the host API; absent on older ones. Feature-detect, never version-check. */
+  hostApi?: YasrHostApi;
+  /** Open the shared describe panel (host API) */
+  describe?(iri: string, options?: YasrDescribeOptions): Promise<void> | void;
+  /** Close the shared describe panel (host API) */
+  closeDescribe?(): void;
+  /** Toolbar slot rendered under the yasr header (host API); emptied by yasr before every plugin draw() */
+  getPluginToolbar?(): HTMLDivElement;
 }

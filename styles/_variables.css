@@ -1,10 +1,12 @@
 /* Color scheme variables using YASGUI CSS custom properties with fallbacks */
 :root {
-  /* Graph-specific node colors (custom to this plugin) */
-  --yasgui-graph-uri: #97c2fc;
-  --yasgui-graph-literal: #a6c8a6ff;
+  /* Graph-specific node colors (custom to this plugin).
+     Data colour roles: resources = brand, literals = ink, highlighted item = amber. */
+  --yasgui-graph-uri: var(--yasgui-brand, #0563bb);
+  --yasgui-graph-literal: var(--yasgui-ink, #1c2633);
   --yasgui-graph-blank-node: #c5c5c5ff;
   --yasgui-graph-type-object: #e15b13ff;
+  --yasgui-graph-highlight: var(--yasgui-highlight, #f2b300);
 
   /* Graph text and edges - using YASGUI variables with fallbacks */
   --yasgui-graph-text: var(--yasgui-text-primary, #000000);
@@ -54,10 +56,11 @@
 [data-theme='dark'],
 .dark-theme {
   /* Graph-specific node colors in dark mode */
-  --yasgui-graph-uri: #97c2fc;
-  --yasgui-graph-literal: #a6c8a6ff;
+  --yasgui-graph-uri: var(--yasgui-brand, #5aa8f2);
+  --yasgui-graph-literal: var(--yasgui-ink, #eef1ef);
   --yasgui-graph-blank-node: #888888;
   --yasgui-graph-type-object: #e15b13ff;
+  --yasgui-graph-highlight: var(--yasgui-highlight, #f5c242);
 
   /* Override with YASGUI dark theme variables */
   --yasgui-graph-text: var(--yasgui-text-primary, #e0e0e0);

@@ -21,7 +21,8 @@
   color: var(--yasgui-graph-error-text);
 }
 
-/* Controls container */
+/* Floating controls container (fallback when yasr has no plugin toolbar slot).
+   @deprecated: replaced by the yasr plugin toolbar; kept for older yasr builds. */
 .yasgui-graph-controls {
   position: absolute;
   top: 10px;
@@ -43,6 +44,10 @@
   font-size: 14px;
   box-shadow: var(--yasgui-graph-shadow);
   transition: background 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
 }
 
 .yasgui-graph-button:hover {
@@ -69,6 +74,11 @@
   font-size: 13px;
 }
 
+/* Settings panel opened from the host toolbar: no floating buttons above it */
+.yasgui-graph-settings-panel--docked {
+  top: 10px;
+}
+
 .yasgui-graph-settings-title {
   font-weight: 600;
   font-size: 14px;
@@ -78,10 +88,8 @@
 }
 
 .yasgui-graph-settings-section {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--yasgui-text-secondary, #888888);
   margin: 10px 0 4px;
 }
@@ -97,7 +105,7 @@
 
 .yasgui-graph-settings-row input[type='checkbox'] {
   cursor: pointer;
-  accent-color: var(--yasgui-accent-color, #4caf50);
+  accent-color: var(--yasgui-brand, var(--yasgui-accent-color, #0563bb));
 }
 
 .yasgui-graph-settings-select {
@@ -127,7 +135,13 @@
 .yasgui-graph-icon svg {
   width: 16px;
   height: 16px;
-  fill: currentColor;
+}
+
+/* Inline Lucide icons: stroke only, in the current text colour */
+.yasgui-graph-lucide {
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
 }
 
 /* Modern tooltip styles - override vis-network defaults */
@@ -161,11 +175,9 @@
 }
 
 .yasgui-tooltip-type {
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
   padding-bottom: 5px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   margin-bottom: 3px;
@@ -190,4 +202,13 @@
   font-size: 11px;
   color: #e8e8e8;
   word-break: break-all;
+}
+
+/* Ctrl/Cmd+click hint, only added when the host describe panel is available */
+.yasgui-tooltip-hint {
+  margin-top: 4px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
 }
