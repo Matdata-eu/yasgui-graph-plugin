@@ -103,6 +103,39 @@
             font-size: 13px;
             border-left: 3px solid #1976d2;
         }
+
+        /* Stand-in styles for the yasr host API plugin toolbar (real yasr ships its own) */
+        .yasr_pluginToolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #ffffff;
+            border: 1px solid #e3e7ec;
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            font-family: Barlow, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 14px;
+        }
+        .yasr_pluginToolbar:empty { display: none; }
+        .yasr_toolbarGroup { display: flex; align-items: center; gap: 8px; }
+        .yasr_toolbarSpacer { flex: 1; }
+        .yasr_toolbarButton, .yasr_toolbarSelect select {
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 10px;
+            border: 1px solid #808893;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #1c2633;
+            font: inherit;
+            cursor: pointer;
+        }
+        .yasr_toolbarSelect { display: inline-flex; align-items: center; gap: 6px; color: #56606c; }
+        .yasr_toolbarButton[aria-pressed="true"], .yasr_toolbarButton.is-active { background: #e3eefa; color: #044a8c; }
+        #describe-log { font-size: 13px; color: #044a8c; min-height: 18px; margin: 6px 0; }
     </style>
 
 </head>
@@ -132,11 +165,17 @@
 
         <button id="theme-toggle">Toggle Theme</button>
 
+        <label title="Simulate a yasr build with the host API (plugin toolbar slot + shared describe panel)">
+            <input type="checkbox" id="host-api-toggle"> Host API (toolbar + Ctrl+click describe)
+        </label>
+
         <div class="info">
             💡 This demo runs the plugin standalone without YASGUI to avoid conflicts
         </div>
     </div>
 
+    <div id="describe-log"></div>
+    <div id="plugin-toolbar" class="yasr_pluginToolbar"></div>
     <div id="demo-container"></div>
 
     <!-- Mock Data -->
@@ -162,8 +201,24 @@
         // Use mock data from mock-data.js
         const mockData = window.mockDatasets;
 
+        // Optional mock of the yasr host API (version 1). Published yasr has none of this,
+        // in which case the plugin draws its own floating controls.
+        const hostApiToggle = document.getElementById('host-api-toggle');
+        const toolbarEl = document.getElementById('plugin-toolbar');
+        const hostApiMock = () => hostApiToggle.checked ? {
+            hostApi: { version: 1, describe: true, toolbar: true },
+            getPluginToolbar: () => toolbarEl,
+            describe: (iri, options) => {
+                document.getElementById('describe-log').textContent =
+                    `yasr.describe("${iri}", ${JSON.stringify(options)}) - the host would open its describe panel here`;
+                return Promise.resolve();
+            },
+            closeDescribe: () => {},
+        } : {};
+
         // Mock YASR-like interface
         const createMockYasr = (dataset) => ({
+            ...hostApiMock(),
             config: {
                 pluginsOptions: {
                     Graph: {}
@@ -204,10 +259,11 @@
             console.log(`🎨 Theme: ${currentTheme}`);
         });
 
-        // Dataset switcher
-        document.getElementById('dataset-selector').addEventListener('change', async (e) => {
-            currentDataset = e.target.value;
+        // Dataset switcher (also used when the host API toggle changes)
+        const reload = async () => {
             const dataset = mockData[currentDataset];
+            toolbarEl.innerHTML = '';
+            document.getElementById('describe-log').textContent = '';
 
             // Destroy old plugin
             if (plugin && plugin.destroy) {
@@ -229,7 +285,12 @@
             }
 
             console.log(`📊 Loaded dataset: ${currentDataset} (${dataset.results.bindings.length} triples)`);
+        };
+        document.getElementById('dataset-selector').addEventListener('change', (e) => {
+            currentDataset = e.target.value;
+            reload();
         });
+        hostApiToggle.addEventListener('change', reload);
     </script>
 </body>
 

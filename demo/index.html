@@ -127,13 +127,16 @@
         <li><strong>Sample queries</strong> are pre-loaded (see tabs: Icons & Images, Ontology, Blank Nodes, Multiple Edges,
           DESCRIBE, Basic)</li>
         <li><strong>Visual customization</strong>: Use <code>schema:icon</code> (emoji/text) and <code>schema:image</code> (URL) to customize node appearance</li>
-        <li><strong>Navigate</strong>: Mouse wheel to zoom, drag background to pan, click "Zoom to Fit" button</li>
+        <li><strong>Navigate</strong>: Mouse wheel to zoom, drag background to pan, click "Zoom to fit"</li>
+        <li><strong>Expand</strong>: Double-click a resource node to add its DESCRIBE triples</li>
+        <li><strong>Describe</strong>: With a yasr that has the host API, Ctrl+click (Cmd+click on macOS) a resource node to open the shared describe panel. This page uses published YASGUI, so the graph draws its own floating controls; see the standalone demo's "Host API" toggle for the toolbar version</li>
         <li><strong>Reorganize</strong>: Drag individual nodes to rearrange the layout</li>
         <li><strong>Inspect</strong>: Hover over nodes/edges to see full details (300ms delay)</li>
-        <li><strong>Color coding</strong>: <span style="color: #c5c5c5ff">⬤ Grey</span> = literals,
-          <span style="color: #e15b13ff">⬤ Orange</span> = blank nodes,
-          <span style="color: #a6c8a6ff">⬤ Green</span> = rdf:type objects,
-          <span style="color: #97C2FC">⬤ Blue</span> = other URIs
+        <li><strong>Colour coding</strong>: <span style="color: #0563bb">&#11044; Blue</span> = resources (IRIs),
+          <span style="color: #1c2633">&#11044; Ink</span> = literals,
+          <span style="color: #c5c5c5">&#11044; Grey</span> = blank nodes,
+          <span style="color: #e15b13">&#11044; Orange</span> = rdf:type objects,
+          <span style="color: #f2b300">&#11044; Amber</span> = selected node
         </li>
       </ul>
     </div>
