@@ -95,7 +95,7 @@ describe('createNodeMap', () => {
     ];
     const nodeMap = createNodeMap(triples, new Map(), themeColors);
     const blankNode = nodeMap.get('_:b0');
-    expect(blankNode?.title).toContain('Blank Node');
+    expect(blankNode?.title).toContain('Blank node');
     expect(blankNode?.title).toContain('_:b0');
     expect(blankNode?.title).toContain('Identifier');
   });
@@ -110,7 +110,7 @@ describe('createNodeMap', () => {
     ];
     const nodeMap = createNodeMap(triples, new Map(), themeColors);
     const blankNode = nodeMap.get('_:b1');
-    expect(blankNode?.title).toContain('Blank Node');
+    expect(blankNode?.title).toContain('Blank node');
     expect(blankNode?.title).toContain('_:b1');
     expect(blankNode?.title).toContain('Identifier');
   });
@@ -246,7 +246,7 @@ describe('triplesToGraph', () => {
     const { nodes } = triplesToGraph(bnodeTriples, prefixMap, themeColors, { compactMode: true });
     const blankNode = nodes.find((n) => n.uri === '_:b0');
     expect(blankNode).toBeDefined();
-    expect(blankNode?.title).toContain('Blank Node');
+    expect(blankNode?.title).toContain('Blank node');
     expect(blankNode?.title).toContain('_:b0');
     expect(blankNode?.title).toContain('rdf:type');
     expect(blankNode?.title).toContain('ex:Person');

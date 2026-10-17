@@ -1,4 +1,4 @@
-import { getNodeColor } from '../src/colorUtils';
+import { getNodeColor, withHighlightColor } from '../src/colorUtils';
 import type { ThemeColors, RDFTriple } from '../src/types';
 
 const themeColors: ThemeColors = {
@@ -56,5 +56,20 @@ describe('getNodeColor', () => {
     expect(
       getNodeColor({ uri: 'http://example.org/alice', type: 'uri' }, triples, themeColors)
     ).toBe(themeColors.uri);
+  });
+});
+
+describe('withHighlightColor', () => {
+  it('returns the flat colour unchanged without a highlight colour', () => {
+    expect(withHighlightColor('#0563bb')).toBe('#0563bb');
+  });
+
+  it('uses the highlight colour for the selected state only', () => {
+    expect(withHighlightColor('#0563bb', '#f2b300')).toEqual({
+      background: '#0563bb',
+      border: '#0563bb',
+      highlight: { background: '#f2b300', border: '#f2b300' },
+      hover: { background: '#0563bb', border: '#0563bb' },
+    });
   });
 });

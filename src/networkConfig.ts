@@ -78,6 +78,7 @@ export function getDefaultNetworkOptions(themeColors: ThemeColors, settings?: Pa
       },
       color: {
         color: themeColors.edge,
+        ...(themeColors.highlight ? { highlight: themeColors.highlight } : {}),
       },
     },
   };

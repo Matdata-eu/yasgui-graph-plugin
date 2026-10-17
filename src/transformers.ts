@@ -129,7 +129,7 @@ function createCompactNodeTooltipHTML(
 ): string {
   const isBlankNode = uri.startsWith('_:');
 
-  let rows = `<div class="yasgui-tooltip-type">${isBlankNode ? 'Blank Node' : 'URI'}</div>`;
+  let rows = `<div class="yasgui-tooltip-type">${isBlankNode ? 'Blank node' : 'URI'}</div>`;
   rows += `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">${isBlankNode ? 'Identifier' : 'Full URI'}</span><span class="yasgui-tooltip-val">${escapeHtml(uri)}</span></div>`;
 
   // rdf:type values
@@ -167,7 +167,7 @@ function createNodeTooltipHTML(
   lang?: string,
   prefixMap?: Map<string, string>
 ): string {
-  const typeLabel = nodeType === 'uri' ? 'URI' : nodeType === 'literal' ? 'Literal' : 'Blank Node';
+  const typeLabel = nodeType === 'uri' ? 'URI' : nodeType === 'literal' ? 'Literal' : 'Blank node';
 
   let rows = `<div class="yasgui-tooltip-type">${typeLabel}</div>`;
 

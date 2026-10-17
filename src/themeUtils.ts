@@ -36,17 +36,22 @@ export function getThemeColors(): Record<string, string> {
  */
 export function getThemeNodeColors(theme: string): ThemeColors {
   const styles = getComputedStyle(document.documentElement);
-  
+  const dark = theme === 'dark';
+  const read = (name: string, fallback: string) => styles.getPropertyValue(name).trim() || fallback;
+
+  // Data colour roles (MatData tokens): resources = brand, literals = ink, highlight = amber.
+  // The plugin's own --yasgui-graph-* variables stay the override points.
   return {
-    uri: styles.getPropertyValue('--yasgui-graph-uri').trim() || '#97C2FC',
-    literal: styles.getPropertyValue('--yasgui-graph-literal').trim() || '#a6c8a6ff',
-    blankNode: styles.getPropertyValue('--yasgui-graph-blank-node').trim() || (theme === 'dark' ? '#888888' : '#c5c5c5ff'),
-    typeObject: styles.getPropertyValue('--yasgui-graph-type-object').trim() || '#e15b13ff',
-    text: styles.getPropertyValue('--yasgui-graph-text').trim() || (theme === 'dark' ? '#e0e0e0' : '#000000'),
-    edge: styles.getPropertyValue('--yasgui-graph-edge').trim() || (theme === 'dark' ? '#666666' : '#cccccc'),
-    edgeLabel: styles.getPropertyValue('--yasgui-graph-edge-label').trim() || (theme === 'dark' ? '#cccccc' : '#666666'),
-    edgeLabelBackground: styles.getPropertyValue('--yasgui-graph-edge-label-bg').trim() || (theme === 'dark' ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)'),
-    background: styles.getPropertyValue('--yasgui-graph-background').trim() || (theme === 'dark' ? '#1e1e1e' : '#ffffff'),
+    uri: read('--yasgui-graph-uri', read('--yasgui-brand', dark ? '#5aa8f2' : '#0563bb')),
+    literal: read('--yasgui-graph-literal', read('--yasgui-ink', dark ? '#eef1ef' : '#1c2633')),
+    blankNode: read('--yasgui-graph-blank-node', dark ? '#888888' : '#c5c5c5ff'),
+    typeObject: read('--yasgui-graph-type-object', '#e15b13ff'),
+    text: read('--yasgui-graph-text', dark ? '#e0e0e0' : '#000000'),
+    edge: read('--yasgui-graph-edge', dark ? '#666666' : '#cccccc'),
+    edgeLabel: read('--yasgui-graph-edge-label', dark ? '#cccccc' : '#666666'),
+    edgeLabelBackground: read('--yasgui-graph-edge-label-bg', dark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)'),
+    background: read('--yasgui-graph-background', dark ? '#1e1e1e' : '#ffffff'),
+    highlight: read('--yasgui-graph-highlight', read('--yasgui-highlight', dark ? '#f5c242' : '#f2b300')),
   };
 }
 
