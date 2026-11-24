@@ -35,3 +35,23 @@ describe('getPredicateIcon', () => {
     expect(getPredicateIcon('http://example.org/unknownPredicate')).toBeUndefined();
   });
 });
+
+describe('getPredicateIcon with configured icons', () => {
+  const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+
+  it('adds icons for predicates without a built-in icon', () => {
+    expect(getPredicateIcon('http://example.org/p', { 'http://example.org/p': '→' })).toBe('→');
+  });
+
+  it('replaces a built-in icon', () => {
+    expect(getPredicateIcon(RDF_TYPE, { [RDF_TYPE]: 'type' })).toBe('type');
+  });
+
+  it('removes a built-in icon with an empty string', () => {
+    expect(getPredicateIcon(RDF_TYPE, { [RDF_TYPE]: '' })).toBeUndefined();
+  });
+
+  it('keeps built-in icons of predicates that are not configured', () => {
+    expect(getPredicateIcon(RDF_TYPE, { 'http://example.org/p': '→' })).toBe('a');
+  });
+});

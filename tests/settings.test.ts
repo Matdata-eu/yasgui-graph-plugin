@@ -86,6 +86,8 @@ describe('saveSettings', () => {
       showNodeLabels: false,
       physicsEnabled: false,
       nodeSize: 'small',
+      labelProperty: 'http://www.w3.org/2004/02/skos/core#prefLabel',
+      groupThreshold: 0,
     };
     saveSettings(modified);
     const loaded = loadSettings();

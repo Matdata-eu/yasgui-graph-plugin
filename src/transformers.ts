@@ -1,8 +1,32 @@
-import type { GraphNode, GraphEdge, RDFTriple, ThemeColors } from './types';
+import type { GraphNode, GraphEdge, NodeId, RDFObject, RDFTriple, ThemeColors } from './types';
 import { applyPrefix, truncateLabel } from './prefixUtils';
 import { getNodeColor } from './colorUtils';
 import { getPredicateIcon } from './predicateIcons';
 import type { GraphPluginSettings } from './settings';
+import { DEFAULT_LABEL_PREDICATES } from './config';
+
+/** Options of the graph transformation that do not come from the user's settings */
+export interface GraphBuildOptions {
+  /** Configured predicate icons (see GraphPluginConfig.predicateIcons) */
+  predicateIcons?: Record<string, string>;
+  /** Predicates tried, in order, for automatic node labels */
+  labelPredicates?: string[];
+  /** Group keys ("<subject>|<predicate>") the user expanded; these are not grouped */
+  expandedGroups?: Set<string>;
+  /** Preferred label languages, most preferred first (defaults to the browser languages) */
+  languages?: string[];
+}
+
+/** Fill colour of group nodes (Soft Lavender) */
+export const GROUP_NODE_COLOR = '#c9b7f5';
+/** Text colour inside group nodes; dark in both themes for contrast on lavender */
+const GROUP_NODE_TEXT_COLOR = '#1c2633';
+/** Edge labels longer than this are shortened with an ellipsis (full IRI stays in the tooltip) */
+export const EDGE_LABEL_MAX_LENGTH = 30;
+/** Default spring length of the physics layout (networkConfig barnesHut.springLength) */
+const BASE_EDGE_LENGTH = 95;
+/** Approximate width of one edge label character at the 12px edge font */
+const EDGE_LABEL_CHAR_WIDTH = 7;
 
 export const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
 export const SCHEMA_IMAGE = 'https://schema.org/image';
@@ -10,8 +34,64 @@ export const SCHEMA_ICON = 'https://schema.org/icon';
 export const RDFS_LABEL = 'http://www.w3.org/2000/01/rdf-schema#label';
 export const RDFS_SUBCLASSOF = 'http://www.w3.org/2000/01/rdf-schema#subClassOf';
 
-/** Predicates whose object nodes and edges are suppressed (they supply visuals or labels instead) */
-const SUPPRESSED_PREDICATES = new Set([SCHEMA_IMAGE, SCHEMA_ICON, RDFS_LABEL]);
+/** Predicates whose object nodes and edges are suppressed (they supply visuals instead) */
+const VISUAL_PREDICATES = new Set([SCHEMA_IMAGE, SCHEMA_ICON]);
+
+/**
+ * The label predicate whose literal values become node labels instead of literal nodes:
+ * the chosen label property, or rdfs:label when labels are picked automatically.
+ */
+export function getSuppressedLabelPredicate(settings?: Partial<GraphPluginSettings>): string {
+  return settings?.labelProperty || RDFS_LABEL;
+}
+
+/** True when a triple is drawn as a node visual or label rather than as an edge to an object node */
+function isSuppressedTriple(triple: RDFTriple, labelPredicate: string): boolean {
+  if (VISUAL_PREDICATES.has(triple.predicate)) return true;
+  // rdfs:label used to be suppressed whatever its object; keep that, and suppress literals of other label predicates
+  if (triple.predicate === labelPredicate) return labelPredicate === RDFS_LABEL || triple.object.type === 'literal';
+  return false;
+}
+
+/** The browser's preferred languages, lower case, most preferred first */
+function getBrowserLanguages(): string[] {
+  if (typeof navigator === 'undefined') return [];
+  const list = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]) || [];
+  return list.filter(Boolean).map((l) => l.toLowerCase());
+}
+
+/**
+ * Pick the literal that fits the preferred languages best: an exact or primary-language match,
+ * then a literal without language, then English, then the first one.
+ */
+export function pickLiteral(literals: RDFObject[], languages: string[]): RDFObject | undefined {
+  if (literals.length <= 1) return literals[0];
+  for (const lang of languages) {
+    const exact = literals.find((l) => (l.lang || '').toLowerCase() === lang);
+    if (exact) return exact;
+    const primary = lang.split('-')[0];
+    const partial = literals.find((l) => (l.lang || '').toLowerCase().split('-')[0] === primary);
+    if (partial) return partial;
+  }
+  return (
+    literals.find((l) => !l.lang) ??
+    literals.find((l) => (l.lang || '').toLowerCase().split('-')[0] === 'en') ??
+    literals[0]
+  );
+}
+
+/**
+ * Predicates that have at least one literal object, i.e. the predicates a node label can be taken from.
+ * @param triples - All RDF triples
+ * @returns Full predicate IRIs, in order of first appearance
+ */
+export function getLiteralPredicates(triples: RDFTriple[]): string[] {
+  const seen = new Set<string>();
+  for (const t of triples) {
+    if (t.object.type === 'literal' && !VISUAL_PREDICATES.has(t.predicate)) seen.add(t.predicate);
+  }
+  return Array.from(seen);
+}
 
 /**
  * Get the rdfs:label value for a URI node.
@@ -217,6 +297,7 @@ export function createNodeMap(
 ): Map<string, GraphNode> {
   const nodeMap = new Map<string, GraphNode>();
   let nodeId = 1;
+  const labelPredicate = getSuppressedLabelPredicate(settings);
   
   // Calculate size multiplier based on settings
   // medium (default) = 1x, small = 0.5x, large = 2x
@@ -250,7 +331,7 @@ export function createNodeMap(
     
     // Add object node (skip for suppressed predicates – their values become node visuals/labels, not nodes)
     const objValue = triple.object.value;
-    if (!nodeMap.has(objValue) && !SUPPRESSED_PREDICATES.has(triple.predicate)) {
+    if (!nodeMap.has(objValue) && !isSuppressedTriple(triple, labelPredicate)) {
       const isLiteral = triple.object.type === 'literal';
       const isBlankNode = !isLiteral && objValue.startsWith('_:');
       
@@ -299,6 +380,35 @@ export function createNodeMap(
 }
 
 /**
+ * Text shown on an edge for a predicate, following the predicateDisplay setting.
+ * Long labels are shortened with an ellipsis; the tooltip keeps the full IRI.
+ */
+export function getEdgeLabel(
+  predicate: string,
+  prefixMap: Map<string, string>,
+  settings?: Partial<GraphPluginSettings>,
+  options?: GraphBuildOptions
+): string {
+  const predicateDisplay = settings?.predicateDisplay ?? 'label';
+  if (predicateDisplay === 'none') return '';
+  const prefixed = truncateLabel(applyPrefix(predicate, prefixMap), EDGE_LABEL_MAX_LENGTH);
+  if (predicateDisplay === 'icon') {
+    return getPredicateIcon(predicate, options?.predicateIcons) ?? prefixed;
+  }
+  return prefixed;
+}
+
+/**
+ * Spring length for an edge so that its label fits between the two nodes.
+ * @returns undefined when the default length is long enough
+ */
+export function getEdgeLength(label: string): number | undefined {
+  if (!label) return undefined;
+  const needed = Math.ceil(label.length * EDGE_LABEL_CHAR_WIDTH + 40);
+  return needed > BASE_EDGE_LENGTH ? needed : undefined;
+}
+
+/**
  * Create edges array from triples
  * @param triples - RDF triples
  * @param nodeMap - Map of node values to GraphNodes
@@ -310,14 +420,16 @@ export function createEdgesArray(
   triples: RDFTriple[],
   nodeMap: Map<string, GraphNode>,
   prefixMap: Map<string, string>,
-  settings?: Partial<GraphPluginSettings>
+  settings?: Partial<GraphPluginSettings>,
+  options?: GraphBuildOptions
 ): GraphEdge[] {
   const edges: GraphEdge[] = [];
   const edgeSet = new Set<string>(); // For deduplication
+  const labelPredicate = getSuppressedLabelPredicate(settings);
   
   triples.forEach((triple) => {
     // Skip suppressed predicates – they define node appearance/labels, not graph edges
-    if (SUPPRESSED_PREDICATES.has(triple.predicate)) return;
+    if (isSuppressedTriple(triple, labelPredicate)) return;
 
     const fromNode = nodeMap.get(triple.subject);
     const toNode = nodeMap.get(triple.object.value);
@@ -330,26 +442,20 @@ export function createEdgesArray(
     if (!edgeSet.has(edgeKey)) {
       edgeSet.add(edgeKey);
 
-      // Determine edge label based on predicateDisplay setting
-      let edgeLabel: string;
-      const predicateDisplay = settings?.predicateDisplay ?? 'label';
-      if (predicateDisplay === 'none') {
-        edgeLabel = '';
-      } else if (predicateDisplay === 'icon') {
-        edgeLabel = getPredicateIcon(triple.predicate) ?? truncateLabel(applyPrefix(triple.predicate, prefixMap));
-      } else {
-        edgeLabel = truncateLabel(applyPrefix(triple.predicate, prefixMap));
-      }
-
-      edges.push({
-        id: `edge_${fromNode.id}_${toNode.id}_${edges.length}`,
+      const edgeLabel = getEdgeLabel(triple.predicate, prefixMap, settings, options);
+      const edge: GraphEdge = {
+        // Stable id: the same triple keeps its edge id across redraws and expansions
+        id: `edge_${fromNode.id}_${triple.predicate}_${toNode.id}`,
         from: fromNode.id,
         to: toNode.id,
         label: edgeLabel,
         predicate: triple.predicate,
         title: createEdgeTooltipHTML(triple.predicate),
         arrows: 'to',
-      });
+      };
+      const length = getEdgeLength(edgeLabel);
+      if (length !== undefined) edge.length = length;
+      edges.push(edge);
     }
   });
   
@@ -402,9 +508,40 @@ export function triplesToGraph(
   triples: RDFTriple[],
   prefixMap: Map<string, string>,
   themeColors: ThemeColors,
-  settings?: Partial<GraphPluginSettings>
+  settings?: Partial<GraphPluginSettings>,
+  options?: GraphBuildOptions
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const nodeMap = createNodeMap(triples, prefixMap, themeColors, settings);
+
+  // Predicates tried for node labels: the chosen one, or the configured list
+  const labelPredicates = settings?.labelProperty
+    ? [settings.labelProperty]
+    : options?.labelPredicates ?? DEFAULT_LABEL_PREDICATES;
+  const languages = options?.languages ?? getBrowserLanguages();
+
+  // subject → predicate → literal objects, for label lookups
+  const literalIndex = new Map<string, Map<string, RDFObject[]>>();
+  for (const t of triples) {
+    if (t.object.type !== 'literal') continue;
+    if (!literalIndex.has(t.subject)) literalIndex.set(t.subject, new Map());
+    const sp = literalIndex.get(t.subject)!;
+    if (!sp.has(t.predicate)) sp.set(t.predicate, []);
+    sp.get(t.predicate)!.push(t.object);
+  }
+
+  /** The label of a node and the predicate it came from */
+  function getNodeLabel(uri: string): { value: string; predicate: string } | undefined {
+    const sp = literalIndex.get(uri);
+    if (!sp) return undefined;
+    for (const predicate of labelPredicates) {
+      const literals = sp.get(predicate);
+      if (literals?.length) {
+        const picked = pickLiteral(literals, languages);
+        if (picked) return { value: picked.value, predicate };
+      }
+    }
+    return undefined;
+  }
 
   // Calculate size multiplier for icon font sizing
   const sizeMultiplier = settings?.nodeSize === 'small' ? 0.5 : settings?.nodeSize === 'large' ? 2 : 1;
@@ -469,8 +606,9 @@ export function triplesToGraph(
       ? resolveCompactVisualIdx(node.uri)
       : getNodeVisualIdx(node.uri);
 
-    // Get rdfs:label if present (O(1) via index)
-    const rdfsLabel = tripleIndex.get(node.uri)?.get(RDFS_LABEL)?.[0];
+    // Label from the label predicates (rdfs:label, skos:prefLabel, ... or the chosen one)
+    const nodeLabel = getNodeLabel(node.uri);
+    const rdfsLabel = nodeLabel ? truncateLabel(nodeLabel.value) : undefined;
 
     if (visual.icon) {
       node.shape = 'text';
@@ -509,25 +647,136 @@ export function triplesToGraph(
       node.label = rdfsLabel;
     }
 
-    // Add rdfs:label to tooltip in non-compact mode (in compact mode it's already included)
-    if (rdfsLabel && !settings?.compactMode) {
-      node.title = appendTooltipRows(node.title, buildVisualTooltipRow('rdfs:label', rdfsLabel));
+    // Add the label to the tooltip in non-compact mode (in compact mode it's already included)
+    if (nodeLabel && !settings?.compactMode) {
+      node.title = appendTooltipRows(
+        node.title,
+        buildVisualTooltipRow(applyPrefix(nodeLabel.predicate, prefixMap), nodeLabel.value)
+      );
     }
   });
 
   // Filter nodes based on settings
-  const visibleNodeIds = new Set<number>();
+  const visibleNodeIds = new Set<NodeId>();
   nodeMap.forEach((node) => {
     if (!settings || isNodeVisible(node, triples, settings)) {
       visibleNodeIds.add(node.id);
     }
   });
 
-  const edges = createEdgesArray(triples, nodeMap, prefixMap, settings)
+  const edges = createEdgesArray(triples, nodeMap, prefixMap, settings, options)
     // Only include edges where both endpoints are visible
     .filter((e) => visibleNodeIds.has(e.from) && visibleNodeIds.has(e.to));
 
   const nodes = Array.from(nodeMap.values()).filter((n) => visibleNodeIds.has(n.id));
 
+  const threshold = settings?.groupThreshold ?? 0;
+  if (threshold > 1) {
+    return groupObjects(nodes, edges, threshold, prefixMap, settings, options);
+  }
   return { nodes, edges };
+}
+
+/**
+ * Key of the group for the objects of one predicate of one subject
+ * @param subject - Subject value (IRI or blank node identifier)
+ * @param predicate - Full predicate IRI
+ */
+export function getGroupKey(subject: string, predicate: string): string {
+  return `${subject}|${predicate}`;
+}
+
+/**
+ * Replace the objects of one predicate of one subject by a single group node when there are
+ * `threshold` or more of them. Only objects without other connections (leaf nodes) are grouped,
+ * so grouping never hides a link between two parts of the graph. Groups in
+ * `options.expandedGroups` stay expanded.
+ */
+export function groupObjects(
+  nodes: GraphNode[],
+  edges: GraphEdge[],
+  threshold: number,
+  prefixMap: Map<string, string>,
+  settings?: Partial<GraphPluginSettings>,
+  options?: GraphBuildOptions
+): { nodes: GraphNode[]; edges: GraphEdge[] } {
+  const nodeById = new Map<NodeId, GraphNode>(nodes.map((n) => [n.id, n]));
+
+  const degree = new Map<NodeId, number>();
+  for (const e of edges) {
+    degree.set(e.from, (degree.get(e.from) ?? 0) + 1);
+    degree.set(e.to, (degree.get(e.to) ?? 0) + 1);
+  }
+
+  // Leaf objects per subject + predicate
+  const buckets = new Map<string, GraphEdge[]>();
+  for (const e of edges) {
+    if (e.from === e.to || degree.get(e.to) !== 1) continue;
+    const subject = nodeById.get(e.from);
+    if (!subject) continue;
+    const key = getGroupKey(subject.fullValue, e.predicate);
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key)!.push(e);
+  }
+
+  const sizeMultiplier = settings?.nodeSize === 'small' ? 0.5 : settings?.nodeSize === 'large' ? 2 : 1;
+  const hiddenNodes = new Set<NodeId>();
+  const hiddenEdges = new Set<string>();
+  const groupNodes: GraphNode[] = [];
+  const groupEdges: GraphEdge[] = [];
+
+  buckets.forEach((members, key) => {
+    if (members.length < threshold) return;
+    if (options?.expandedGroups?.has(key)) return;
+
+    const first = members[0];
+    const predicateLabel = applyPrefix(first.predicate, prefixMap);
+    const groupId = `group:${key}`;
+    members.forEach((e) => {
+      hiddenEdges.add(e.id);
+      hiddenNodes.add(e.to);
+    });
+
+    const sample = members
+      .slice(0, 5)
+      .map((e) => nodeById.get(e.to)?.label ?? '')
+      .filter(Boolean);
+    let rows =
+      `<div class="yasgui-tooltip-type">Group</div>` +
+      `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">Predicate</span><span class="yasgui-tooltip-val">${escapeHtml(predicateLabel)}</span></div>` +
+      `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">Objects</span><span class="yasgui-tooltip-val">${members.length}</span></div>`;
+    if (sample.length) {
+      const more = members.length > sample.length ? ', …' : '';
+      rows += `<div class="yasgui-tooltip-row"><span class="yasgui-tooltip-key">Includes</span><span class="yasgui-tooltip-val">${escapeHtml(sample.join(', '))}${more}</span></div>`;
+    }
+    rows += `<div class="yasgui-tooltip-hint">Double-click to show the objects</div>`;
+
+    groupNodes.push({
+      id: groupId,
+      uri: null,
+      label: String(members.length),
+      color: GROUP_NODE_COLOR,
+      type: 'group',
+      fullValue: groupId,
+      title: `<div class="yasgui-graph-tooltip">${rows}</div>`,
+      shape: 'circle',
+      font: { size: 14 * sizeMultiplier, color: GROUP_NODE_TEXT_COLOR },
+      groupKey: key,
+      memberCount: members.length,
+    });
+
+    const edge: GraphEdge = {
+      ...first,
+      id: `edge_${first.from}_${first.predicate}_${groupId}`,
+      to: groupId,
+    };
+    groupEdges.push(edge);
+  });
+
+  if (groupNodes.length === 0) return { nodes, edges };
+
+  return {
+    nodes: [...nodes.filter((n) => !hiddenNodes.has(n.id)), ...groupNodes],
+    edges: [...edges.filter((e) => !hiddenEdges.has(e.id)), ...groupEdges],
+  };
 }

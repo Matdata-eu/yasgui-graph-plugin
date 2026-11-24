@@ -155,6 +155,22 @@ On a yasr with the host API, the toolbar also has direct controls for **Edges** 
 | **Show node labels** | on / off | on | Render the prefixed URI / literal text inside each node |
 | **Enable physics** | on / off | on | Keep the force-directed layout simulation running so nodes keep adjusting |
 | **Node size** | Small / Medium / Large | Medium | Set the radius of all nodes |
+| **Label from** | Automatic / any predicate with literal values in the results | Automatic | Predicate whose value labels the nodes (see [Node labels](#node-labels)) |
+| **Group objects** | Off / 3 / 5 / 10 / 20 / 50 or more | 10 or more | Show the objects of one predicate as a single group node (see [Grouping](#grouping-objects)) |
+
+### Node labels
+
+A resource node shows its prefixed IRI unless it has a label. With **Label from: Automatic** the first of these predicates that the node has is used: `rdfs:label`, `skos:prefLabel`, `dcterms:title`, `dc:title`, `schema:name`, `foaf:name`, `skos:notation`. When there are labels in several languages, the browser's language wins, then a label without language, then English.
+
+**Label from** lists every predicate that has literal values in the current results, so you can pick e.g. `skos:notation` or a project-specific code. The chosen predicate's values become the labels and are no longer drawn as separate literal nodes; in Automatic mode that is the case for `rdfs:label`. The label and its predicate are shown in the node's tooltip.
+
+### Grouping objects
+
+When a resource has many objects for the same predicate (for example a line with 40 `ex:hasSection` links), they are drawn as one lavender **group node** with the number of objects. Hover it to see the predicate and a few of the objects; **double-click** it to show the objects themselves (no describe query is run). Only objects without other links in the graph are grouped, so grouping never hides a connection. Groups you open stay open when you change a setting, and close again for new results. Set **Group objects** to *Off* to never group.
+
+### Long predicate names
+
+Edge labels longer than 30 characters are shortened with an ellipsis (the full IRI stays in the edge tooltip), and edges with long labels get a longer spring in the layout so the label fits between the nodes.
 
 ### Predicate icons
 
@@ -197,6 +213,8 @@ When *Predicate display* is set to **Icon**, each edge displays a compact symbol
 | `schema:description` | `dsc` |
 
 For predicates not in the table the full prefixed label is used as a fallback.
+
+Integrators can add icons, replace built-in ones, or remove one with an empty string, with the `predicateIcons` option (see [Integrator configuration](#integrator-configuration)).
 
 ## 🖼️ Node icons and images
 
@@ -241,6 +259,47 @@ When compact mode is enabled, class nodes are hidden and the plugin resolves the
 1. `schema:image` / `schema:icon` directly on the **resource** (highest priority)
 2. `schema:image` / `schema:icon` on the **rdf:type class**
 3. `schema:image` / `schema:icon` on a **rdfs:subClassOf superclass** (one hop)
+
+### Integrator configuration
+
+Two options are meant for the page that embeds the plugin rather than for the user:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `predicateIcons` | `Record<string, string>` | `{}` | Edge icons keyed by full predicate IRI. Added to the built-in icons; replaces a built-in icon of the same predicate; `''` removes the icon so the prefixed IRI is shown |
+| `labelPredicates` | `string[]` | see [Node labels](#node-labels) | Predicates tried, in order, for node labels when *Label from* is Automatic |
+
+Set them for every graph view on `GraphPlugin.defaults`:
+
+```javascript
+import GraphPlugin from '@matdata/yasgui-graph-plugin';
+
+GraphPlugin.defaults.predicateIcons['http://example.org/hasPart'] = '⊃';
+GraphPlugin.defaults.predicateIcons['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'] = 'type';
+GraphPlugin.defaults.labelPredicates = [
+  'http://www.w3.org/2004/02/skos/core#prefLabel',
+  'http://www.w3.org/2000/01/rdf-schema#label',
+];
+Yasgui.Yasr.registerPlugin('Graph', GraphPlugin);
+```
+
+or for one Yasgui/Yasr instance in its configuration, under the name the plugin is registered with:
+
+```javascript
+new Yasgui(element, {
+  yasr: {
+    plugins: {
+      Graph: {
+        staticConfig: {
+          predicateIcons: { 'http://example.org/hasPart': '⊃' },
+        },
+      },
+    },
+  },
+});
+```
+
+`predicateIcons` of both are merged; the instance's `labelPredicates` replace those of `GraphPlugin.defaults`.
 
 ### Programmatic configuration
 
