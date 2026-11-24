@@ -1,257 +1,49 @@
 <!DOCTYPE html>
 <!--
-  YASGUI Graph Plugin - Demo Page
-  
-  This demo automatically detects the environment:
-  - Development (localhost/file): Loads ES modules from src/ for live reload
-  - Production (GitHub Pages): Loads minified bundle from dist/
-  
-  To develop locally: Open this file directly or run: npm run dev
-  For production builds: npm run build
--->
-<html lang="en">
+  Graph plugin demo
 
+  The graph view as it is in MatGUI: MatGUI's own results pane (Yasr from
+  @matdata/yasgui, with its plugin toolbar, shared describe panel and theme)
+  showing only this plugin, with sample CONSTRUCT results to pick from.
+
+  Development: npm run dev (the plugin is loaded from src/)
+  Deployed: the demo folder with the plugin build copied to demo/dist/
+-->
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YASGUI Graph Plugin Demo</title>
+  <title>Graph plugin demo</title>
+  <meta name="description" content="Demo of the MatGUI graph view: CONSTRUCT and DESCRIBE results as an interactive graph.">
 
-  <!-- YASGUI CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.6.0/build/yasgui.min.css">
-
-  <!-- Font Awesome for icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      padding-top: 0px;
-      background: #f5f5f5;
-    }
-
-    h1 {
-      color: #333;
-      margin-bottom: 5px;
-    }
-
-    .instructions {
-      background: white;
-      padding: 5px;
-      border-radius: 4px;
-      margin-bottom: 5px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .instructions h2 {
-      margin-top: 0;
-      font-size: 18px;
-      color: #2196F3;
-      cursor: pointer;
-      user-select: none;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .instructions h2:hover {
-      color: #0b7dda;
-    }
-
-    .toggle-icon {
-      transition: transform 0.3s ease;
-      font-size: 14px;
-    }
-
-    .toggle-icon.collapsed {
-      transform: rotate(-90deg);
-    }
-
-    .instructions-content {
-      max-height: 500px;
-      overflow: hidden;
-      transition: max-height 0.3s ease, opacity 0.3s ease;
-      opacity: 1;
-    }
-
-    .instructions-content.collapsed {
-      max-height: 0;
-      opacity: 0;
-    }
-
-    .instructions ul {
-      margin: 10px 0;
-      padding-left: 20px;
-    }
-
-    .instructions li {
-      margin: 5px 0;
-    }
-
-    .instructions code {
-      background: #f0f0f0;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-family: monospace;
-    }
-
-    #yasgui {
-      height: 800px;
-      background: white;
-      border-radius: 4px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-  </style>
-
+  <!-- MatGUI, with the fonts it expects the page to load -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@matdata/yasgui@6.15.0/build/yasgui.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="./demo.css">
 </head>
-
 <body>
-  <h1>🔷 YASGUI Graph Plugin Demo</h1>
-
-  <div style="font-size:13px;margin-bottom:4px;">
-    Also see:
-    <a href="./expand.html" style="color:#1976d2;font-weight:600;">🖱️ Node Expansion Demo</a>
-    &nbsp;|&nbsp;
-    <a href="./standalone.html" style="color:#1976d2;">Standalone Demo</a>
-  </div>
-
-  <div class="instructions">
-    <h2 onclick="toggleInstructions()">
-      <span class="toggle-icon collapsed">▼</span>
-      <span>📖 Instructions</span>
-    </h2>
-    <div class="instructions-content collapsed">
-      <ul>
-        <li>Click the <strong>"Graph"</strong> tab after running a CONSTRUCT or DESCRIBE query</li>
-        <li><strong>Sample queries</strong> are pre-loaded (see tabs: Icons & Images, Ontology, Blank Nodes, Multiple Edges,
-          DESCRIBE, Basic)</li>
-        <li><strong>Visual customization</strong>: Use <code>schema:icon</code> (emoji/text) and <code>schema:image</code> (URL) to customize node appearance</li>
-        <li><strong>Navigate</strong>: Mouse wheel to zoom, drag background to pan, click "Zoom to fit"</li>
-        <li><strong>Expand</strong>: Double-click a resource node to add its DESCRIBE triples</li>
-        <li><strong>Describe</strong>: With a yasr that has the host API, Ctrl+click (Cmd+click on macOS) a resource node to open the shared describe panel. This page uses published YASGUI, so the graph draws its own floating controls; see the standalone demo's "Host API" toggle for the toolbar version</li>
-        <li><strong>Reorganize</strong>: Drag individual nodes to rearrange the layout</li>
-        <li><strong>Inspect</strong>: Hover over nodes/edges to see full details (300ms delay)</li>
-        <li><strong>Colour coding</strong>: <span style="color: #0563bb">&#11044; Blue</span> = resources (IRIs),
-          <span style="color: #1c2633">&#11044; Ink</span> = literals,
-          <span style="color: #c5c5c5">&#11044; Grey</span> = blank nodes,
-          <span style="color: #e15b13">&#11044; Orange</span> = rdf:type objects,
-          <span style="color: #f2b300">&#11044; Amber</span> = selected node
-        </li>
-      </ul>
+  <header class="demo-bar">
+    <div class="demo-brand">
+      <h1><span>Graph</span> plugin</h1>
+      <p>CONSTRUCT and DESCRIBE results as an interactive graph, shown in MatGUI's results pane.</p>
     </div>
-  </div>
+    <div class="demo-actions">
+      <label class="demo-field">
+        Dataset
+        <select id="dataset" class="demo-select"></select>
+      </label>
+      <button type="button" id="theme-toggle" class="demo-button">Dark theme</button>
+      <a class="demo-link" href="https://github.com/Matdata-eu/yasgui-graph-plugin">Source</a>
+      <a class="demo-link" href="https://matgui.matdata.eu/">MatGUI</a>
+    </div>
+  </header>
+  <p class="demo-hint" id="dataset-hint"></p>
+  <main class="demo-pane" id="yasr" aria-label="Results"></main>
 
-  <script>
-    function toggleInstructions() {
-      const content = document.querySelector('.instructions-content');
-      const icon = document.querySelector('.toggle-icon');
-      content.classList.toggle('collapsed');
-      icon.classList.toggle('collapsed');
-    }
-  </script>
-
-  <div id="yasgui"></div>
-
-  <!-- YASGUI JavaScript -->
-  <script src="https://cdn.jsdelivr.net/npm/@matdata/yasgui@5.6.0/build/yasgui.min.js"></script>
-
-  <!-- Sample queries -->
-  <script src="./queries.js"></script>
-
-  <!-- Graph Plugin: Load from source in dev, or from dist in production -->
-  <script type="module">
-    // Detect if running in Vite dev server (module system available)
-    const isViteDev = import.meta.env?.DEV;
-
-    let pluginLoaded = false;
-
-    if (isViteDev) {
-      // Development mode: Load plugin from source
-      const { default: GraphPlugin } = await import('@matdata/yasgui-graph-plugin');
-      window.YasguiGraphPlugin = { GraphPlugin };
-      pluginLoaded = true;
-      console.log('✅ Graph Plugin loaded from source (Vite dev mode)');
-    }
-
-    // In production mode or if dev load failed, load the bundle
-    if (!pluginLoaded) {
-      const script = document.createElement('script');
-      await new Promise((resolve, reject) => {
-        script.onload = () => {
-          console.log('✅ Graph Plugin loaded from bundle (production mode)');
-          resolve();
-        };
-        script.onerror = () => {
-          console.error('❌ Failed to load Graph Plugin bundle');
-          reject();
-        };
-        document.head.appendChild(script);
-        script.src = './dist/yasgui-graph-plugin.min.js';
-      });
-    }
-
-    // Register the graph plugin
-    if (window.Yasgui && window.YasguiGraphPlugin) {
-      Yasgui.Yasr.registerPlugin('Graph-Dev', window.YasguiGraphPlugin.GraphPlugin);
-      console.log('✅ Graph Plugin registered as "Graph-Dev"');
-    } else {
-      console.error('❌ Failed to load Graph Plugin');
-    }
-
-    // Initialize YASGUI after plugin is registered
-    const yasgui = new Yasgui(document.getElementById('yasgui'), {
-      // Set the SPARQL endpoint
-      requestConfig: {
-        endpoint: 'https://data-interop.era.europa.eu/api/sparql',
-      },
-      endpointButtons: [
-        { endpoint: "http://localhost:3030/g", label: "localhost:3030/g" },
-        { endpoint: "https://dbpedia.org/sparql", label: "DBpedia" },
-        { endpoint: "https://query.wikidata.org/sparql", label: "Wikidata" },
-        { endpoint: "https://data-interop.era.europa.eu/api/sparql", label: "ERA" }
-      ],
-      yasr: {
-        defaultPlugin: 'Graph-Dev',
-      },
-      copyEndpointOnNewTab: false,
-    });
-
-    // Add sample query tabs
-    const tabs = [
-      { name: 'Icons & Images', query: queries.iconsAndImages },
-      { name: 'Inheritance Test', query: queries.inheritanceTest },
-      { name: 'Override Test', query: queries.overrideTest },
-      { name: 'Multiple Types Test', query: queries.multipleTypesTest },
-      { name: 'Ontology', query: queries.ontology },
-      { name: 'Blank Nodes', query: queries.blankNodes },
-      { name: 'Multiple Edges', query: queries.multiplePredicates },
-      { name: 'DESCRIBE Query', query: queries.describe },
-      { name: 'Basic Graph', query: queries.basic },
-    ];
-
-    // Close all existing tabs
-    let tab;
-    while ((tab = yasgui.getTab()) != null) {
-      try {
-        tab.close();
-      } catch (e) {
-        console.error('Failed to close tab:', e);
-        break;
-      }
-    }
-
-    // Add sample tabs
-    tabs.forEach((tab, index) => {
-      const yasguiTab = yasgui.addTab(
-        true, // set active
-        {
-          name: tab.name,
-          yasqe: { value: tab.query }
-        }
-      );
-    });
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@matdata/yasgui@6.15.0/build/yasgui.min.js"></script>
+  <script src="./mock-data.js"></script>
+  <script type="module" src="./main.js"></script>
 </body>
-
 </html>

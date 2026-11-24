@@ -433,7 +433,7 @@ The node expansion feature requires:
 
 ### Demo
 
-See [demo/expand.html](./demo/expand.html) for a working example with mock DESCRIBE responses and detailed logging.
+Pick the **Node expansion** dataset in the [demo](./demo/index.html) (`npm run dev`) for a working example with mock DESCRIBE responses.
 
 ## �🔧 Development
 
@@ -453,8 +453,8 @@ Output:
 ### Local Testing
 
 1. Build the plugin: `npm run build`
-2. Open `demo/index.html` in a browser (or run `npm run dev`)
-3. Try the sample queries in different tabs
+2. Run `npm run dev` and open the demo it serves (`demo/index.html`)
+3. Pick a dataset; the demo shows the plugin in MatGUI's results pane, with the plugin loaded from `src/`
 
 ### Code Quality
 

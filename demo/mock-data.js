@@ -1051,4 +1051,118 @@ window.mockDatasets = {
   },
 };
 
+// ── Datasets for the newer features ─────────────────────────────────────────
+// Written as [subject, predicate, object] rows: IRIs as strings, literals as
+// { value, lang?, datatype? }.
+(() => {
+  const EX = 'http://example.org/';
+  const RDF = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+  const RDFS = 'http://www.w3.org/2000/01/rdf-schema#';
+  const FOAF = 'http://xmlns.com/foaf/0.1/';
+  const ORG = 'http://www.w3.org/ns/org#';
+  const SKOS = 'http://www.w3.org/2004/02/skos/core#';
+  const XSD = 'http://www.w3.org/2001/XMLSchema#';
+
+  const term = (t) =>
+    typeof t === 'string'
+      ? { type: t.startsWith('_:') ? 'bnode' : 'uri', value: t.replace(/^_:/, '') }
+      : {
+          type: 'literal',
+          value: String(t.value),
+          ...(t.lang ? { 'xml:lang': t.lang } : {}),
+          ...(t.datatype ? { datatype: t.datatype } : {}),
+        };
+  const construct = (rows, prefixes) => ({
+    head: { vars: ['subject', 'predicate', 'object'] },
+    results: {
+      bindings: rows.map(([s, p, o]) => ({ subject: term(s), predicate: term(p), object: term(o) })),
+    },
+    prefixes,
+  });
+  const lit = (value, extra = {}) => ({ value, ...extra });
+
+  // Node expansion: only Alice and Bob are in the results. The rest of the
+  // social network is in window.mockKnowledgeGraph and arrives when a node is
+  // double-clicked (DESCRIBE) or opened in the describe panel.
+  window.mockDatasets.expansion = construct(
+    [
+      [EX + 'alice', RDF + 'type', FOAF + 'Person'],
+      [EX + 'alice', FOAF + 'name', lit('Alice')],
+      [EX + 'alice', FOAF + 'knows', EX + 'bob'],
+      [EX + 'bob', RDF + 'type', FOAF + 'Person'],
+      [EX + 'bob', FOAF + 'name', lit('Bob')],
+    ],
+    { ex: EX, foaf: FOAF, rdf: RDF, org: ORG, xsd: XSD }
+  );
+  window.mockKnowledgeGraph = construct([
+    [EX + 'alice', FOAF + 'mbox', lit('alice@example.org')],
+    [EX + 'alice', FOAF + 'age', lit('30', { datatype: XSD + 'integer' })],
+    [EX + 'alice', ORG + 'memberOf', EX + 'acme-corp'],
+    [EX + 'alice', FOAF + 'knows', EX + 'carol'],
+    [EX + 'bob', FOAF + 'mbox', lit('bob@example.org')],
+    [EX + 'bob', FOAF + 'age', lit('28', { datatype: XSD + 'integer' })],
+    [EX + 'bob', ORG + 'memberOf', EX + 'acme-corp'],
+    [EX + 'bob', FOAF + 'knows', EX + 'dave'],
+    [EX + 'carol', RDF + 'type', FOAF + 'Person'],
+    [EX + 'carol', FOAF + 'name', lit('Carol')],
+    [EX + 'carol', FOAF + 'mbox', lit('carol@example.org')],
+    [EX + 'carol', FOAF + 'knows', EX + 'dave'],
+    [EX + 'carol', ORG + 'memberOf', EX + 'tech-startup'],
+    [EX + 'dave', RDF + 'type', FOAF + 'Person'],
+    [EX + 'dave', FOAF + 'name', lit('Dave')],
+    [EX + 'dave', FOAF + 'mbox', lit('dave@example.org')],
+    [EX + 'dave', FOAF + 'knows', EX + 'alice'],
+    [EX + 'dave', ORG + 'memberOf', EX + 'tech-startup'],
+    [EX + 'acme-corp', RDF + 'type', ORG + 'Organization'],
+    [EX + 'acme-corp', RDFS + 'label', lit('ACME Corporation')],
+    [EX + 'acme-corp', FOAF + 'homepage', 'https://example.org/acme'],
+    [EX + 'tech-startup', RDF + 'type', ORG + 'Organization'],
+    [EX + 'tech-startup', RDFS + 'label', lit('TechStart Inc.')],
+  ]).results.bindings;
+
+  // Grouping: a station with many platforms and tracks. With the default
+  // threshold of 10, the platforms collapse into one group node.
+  const station = EX + 'station/leuven';
+  const rows = [
+    [station, RDF + 'type', EX + 'Station'],
+    [station, RDFS + 'label', lit('Leuven')],
+    [station, EX + 'operator', EX + 'operator/nmbs'],
+    [EX + 'operator/nmbs', RDFS + 'label', lit('NMBS/SNCB')],
+  ];
+  for (let i = 1; i <= 14; i++) {
+    rows.push([station, EX + 'hasPlatform', EX + `station/leuven/platform/${i}`]);
+  }
+  for (let i = 1; i <= 4; i++) {
+    const track = EX + `station/leuven/track/${i}`;
+    rows.push([station, EX + 'hasTrack', track]);
+    rows.push([track, RDFS + 'label', lit(`Track ${i}`)]);
+  }
+  window.mockDatasets.grouping = construct(rows, { ex: EX, rdf: RDF, rdfs: RDFS });
+
+  // Labels: SKOS concepts with prefLabels in several languages and a notation.
+  // The settings panel's "Label from" lists skos:prefLabel and skos:notation.
+  const concepts = [
+    ['passenger', 'P', { en: 'Passenger train', nl: 'Reizigerstrein', fr: 'Train de voyageurs', de: 'Personenzug' }],
+    ['freight', 'F', { en: 'Freight train', nl: 'Goederentrein', fr: 'Train de marchandises', de: 'Güterzug' }],
+    ['highspeed', 'HS', { en: 'High-speed train', nl: 'Hogesnelheidstrein', fr: 'Train à grande vitesse', de: 'Hochgeschwindigkeitszug' }],
+  ];
+  const scheme = EX + 'scheme/train-types';
+  const skosRows = [
+    [scheme, RDF + 'type', SKOS + 'ConceptScheme'],
+    [scheme, SKOS + 'prefLabel', lit('Train types', { lang: 'en' })],
+    [scheme, SKOS + 'prefLabel', lit('Treintypes', { lang: 'nl' })],
+  ];
+  for (const [id, notation, labels] of concepts) {
+    const concept = EX + `train-type/${id}`;
+    skosRows.push([concept, RDF + 'type', SKOS + 'Concept']);
+    skosRows.push([concept, SKOS + 'inScheme', scheme]);
+    skosRows.push([concept, SKOS + 'notation', lit(notation)]);
+    for (const [lang, label] of Object.entries(labels)) {
+      skosRows.push([concept, SKOS + 'prefLabel', lit(label, { lang })]);
+    }
+  }
+  skosRows.push([EX + 'train-type/highspeed', SKOS + 'broader', EX + 'train-type/passenger']);
+  window.mockDatasets.skos = construct(skosRows, { ex: EX, rdf: RDF, skos: SKOS });
+})();
+
 console.log('📦 Mock datasets loaded:', Object.keys(window.mockDatasets));
