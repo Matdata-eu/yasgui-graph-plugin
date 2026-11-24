@@ -16,13 +16,17 @@ export interface RDFObject {
   lang?: string;
 }
 
+/** Node id: a number for nodes of the data, a string for group nodes */
+export type NodeId = number | string;
+
 // Graph node and edge types
 export interface GraphNode {
-  id: number;
+  id: NodeId;
   uri: string | null;
   label: string;
   color: string;
-  type: 'uri' | 'literal';
+  /** 'group' is a node that stands for the objects of one predicate of one subject */
+  type: 'uri' | 'literal' | 'group';
   fullValue: string;
   title: string;
   size?: number;
@@ -31,17 +35,23 @@ export interface GraphNode {
   /** Image URL used when shape is 'circularImage' (from schema:image) */
   image?: string;
   /** Font configuration for the node label (overrides global font settings) */
-  font?: { size: number };
+  font?: { size: number; color?: string };
+  /** Group nodes: the subject value and predicate of the grouped objects, "<subject>|<predicate>" */
+  groupKey?: string;
+  /** Group nodes: number of grouped objects */
+  memberCount?: number;
 }
 
 export interface GraphEdge {
   id: string;
-  from: number;
-  to: number;
+  from: NodeId;
+  to: NodeId;
   label: string;
   predicate: string;
   title: string;
   arrows: string;
+  /** Spring length for the physics layout; longer for long edge labels */
+  length?: number;
 }
 
 // Theme color types
@@ -160,6 +170,10 @@ export interface YasrDescribeOptions {
 export interface Yasr {
   results: YasrResults;
   resultsEl: HTMLElement;
+  /** Plugin instances by registered name */
+  plugins?: Record<string, unknown>;
+  /** yasr configuration; per-plugin configuration lives under plugins[<registered name>] */
+  config?: { plugins?: Record<string, { staticConfig?: unknown; dynamicConfig?: unknown } | undefined> };
   getPrefixes?(): Record<string, string>;
   executeQuery?(query: string, options?: PluginQueryOptions): Promise<any>;
   /** Present on yasr builds with the host API; absent on older ones. Feature-detect, never version-check. */

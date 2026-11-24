@@ -63,7 +63,13 @@ export const PREDICATE_ICONS: Record<string, string> = {
 /**
  * Return the icon/symbol for a predicate URI, falling back to undefined if none defined.
  * @param predicateUri - Full predicate URI
+ * @param overrides - Configured icons, keyed by full predicate URI. They win over the
+ *   built-in ones; an empty string removes the icon of that predicate.
  */
-export function getPredicateIcon(predicateUri: string): string | undefined {
+export function getPredicateIcon(predicateUri: string, overrides?: Record<string, string>): string | undefined {
+  if (overrides && Object.prototype.hasOwnProperty.call(overrides, predicateUri)) {
+    const configured = overrides[predicateUri];
+    return typeof configured === 'string' && configured !== '' ? configured : undefined;
+  }
   return PREDICATE_ICONS[predicateUri];
 }

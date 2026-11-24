@@ -2,7 +2,11 @@ import type { Yasr, RDFTriple } from './types';
 import { extractPrefixes } from './prefixUtils';
 import { getDefaultNetworkOptions } from './networkConfig';
 import { parseConstructResults, parseBackgroundQueryResponse } from './parsers';
-import { triplesToGraph } from './transformers';
+import { triplesToGraph, getLiteralPredicates } from './transformers';
+import type { GraphBuildOptions } from './transformers';
+import { applyPrefix } from './prefixUtils';
+import { getDefaultConfig, mergeConfig } from './config';
+import type { GraphPluginConfig } from './config';
 import { Network, DataSet } from 'vis-network/standalone';
 import { getCurrentTheme, getThemeNodeColors, watchThemeChanges } from './themeUtils';
 import { loadSettings, saveSettings } from './settings';
@@ -11,7 +15,7 @@ import { withHighlightColor } from './colorUtils';
 import { getHostDescribe, getHostToolbar, DESCRIBE_SOURCE } from './hostApi';
 import { icon } from './icons';
 import type { IconName } from './icons';
-import type { GraphNode, ThemeColors } from './types';
+import type { GraphNode, NodeId, ThemeColors } from './types';
 import '../styles/index.css';
 
 /** Border width while a DESCRIBE query is in-flight for a node */
@@ -52,7 +56,19 @@ class GraphPlugin {
   private settingsPanelOpen: boolean = false;
   private clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
   private expansionAbortController: AbortController | null = null;
-  private uriToNodeId: Map<string, number> = new Map();
+  private uriToNodeId: Map<string, NodeId> = new Map();
+  /** Groups ("<subject>|<predicate>") the user expanded; kept on settings redraws, reset for new results */
+  private expandedGroups: Set<string> = new Set();
+  /** Set by redraws that show the same results (settings changes), so expanded groups are kept */
+  private keepViewState: boolean = false;
+  /** Integrator configuration, resolved on every draw */
+  private config: GraphPluginConfig = getDefaultConfig();
+
+  /**
+   * Configuration for every graph view. Assign or mutate before yasr draws, for example
+   * `GraphPlugin.defaults.predicateIcons['http://example.org/p'] = '→'`.
+   */
+  static defaults: GraphPluginConfig = getDefaultConfig();
   /** Elements this plugin put into the host toolbar slot (host API only) */
   private toolbarItems: HTMLElement[] = [];
   /** The button that opens the settings panel (floating or toolbar) */
@@ -127,6 +143,11 @@ class GraphPlugin {
   draw(): void {
     // Save settings panel state
     const wasPanelOpen = this.settingsPanelOpen;
+
+    // New results collapse expanded groups again; settings redraws keep them
+    if (!this.keepViewState) this.expandedGroups = new Set();
+    this.keepViewState = false;
+    this.config = this.resolveConfig();
     
     // Abort any ongoing expansion when redrawing
     if (this.expansionAbortController) {
@@ -167,7 +188,7 @@ class GraphPlugin {
       const themeColors = getThemeNodeColors(this.currentTheme);
       
       // Transform triples to graph data
-      const { nodes, edges } = triplesToGraph(this.triples, this.prefixMap, themeColors, this.settings);
+      const { nodes, edges } = this.buildGraph(themeColors);
       
       // Create container
       const container = document.createElement('div');
@@ -426,7 +447,7 @@ class GraphPlugin {
     });
 
     // Regenerate graph data with new theme colors
-    const { nodes, edges } = triplesToGraph(this.triples, this.prefixMap, themeColors, this.settings);
+    const { nodes, edges } = this.buildGraph(themeColors);
     
     // Update DataSets
     this.nodesDataSet.clear();
@@ -650,6 +671,7 @@ class GraphPlugin {
       saveSettings(this.settings);
       // Re-draw entire graph to reflect new settings
       // The draw() method will restore the settings panel since settingsPanelOpen = true
+      this.keepViewState = true;
       this.draw();
     };
 
@@ -683,6 +705,29 @@ class GraphPlugin {
     addToggle('Compact mode', this.settings.compactMode, (v) => {
       this.settings.compactMode = v; applyAndRedraw();
     });
+
+    // ── Node labels ──────────────────────────────────────────
+    addSection('Node labels');
+    const labelOptions = this.getLabelPropertyOptions();
+    addSelect(
+      'Label from',
+      labelOptions,
+      this.settings.labelProperty,
+      (v) => { this.settings.labelProperty = v; applyAndRedraw(); }
+    );
+
+    // ── Grouping ─────────────────────────────────────────────
+    addSection('Grouping');
+    const thresholds = [0, 3, 5, 10, 20, 50];
+    if (!thresholds.includes(this.settings.groupThreshold)) thresholds.push(this.settings.groupThreshold);
+    addSelect(
+      'Group objects',
+      thresholds
+        .sort((a, b) => a - b)
+        .map((n) => ({ value: String(n), label: n === 0 ? 'Off' : `${n} or more` })),
+      String(this.settings.groupThreshold),
+      (v) => { this.settings.groupThreshold = Number(v) || 0; applyAndRedraw(); }
+    );
 
     // ── Additional settings ──────────────────────────────────
     addSection('Display');
@@ -721,6 +766,12 @@ class GraphPlugin {
 
       const nodeId = params.nodes[0];
       const node = this.nodesDataSet.get(nodeId);
+
+      // A group node shows its members; no describe query
+      if (node && node.type === 'group' && node.groupKey) {
+        this.expandGroup(node.groupKey, nodeId);
+        return;
+      }
 
       // Only expand URI nodes (not literals or blank nodes)
       if (node && node.uri && !node.uri.startsWith('_:')) {
@@ -850,6 +901,7 @@ class GraphPlugin {
       this.settings[key] = value;
       saveSettings(this.settings);
       this.pendingFocus = String(key);
+      this.keepViewState = true;
       this.draw();
     };
 
@@ -1035,34 +1087,64 @@ class GraphPlugin {
   }
 
   /**
-   * Incrementally add new triples to the vis-network DataSets without a full redraw.
-   * New nodes and edges are added; existing ones are left untouched.
-   * Expects `this.triples` to already include the new triples.
+   * Incrementally bring the vis-network DataSets in line with `this.triples` without a full redraw.
+   * New nodes and edges are added, nodes and edges that are now grouped (or no longer grouped)
+   * are removed, group counts are updated; other existing nodes are left untouched so their
+   * position and expansion state stay.
+   * @param anchorId - Optional node whose position new nodes start from (an expanded group)
    */
-  private mergeNewTriples(): void {
+  private mergeNewTriples(anchorId?: NodeId): void {
     if (!this.triples || !this.prefixMap || !this.nodesDataSet || !this.edgesDataSet) return;
 
     const themeColors = getThemeNodeColors(this.currentTheme);
 
-    // Regenerate the full graph from all triples (new IDs are stable for existing nodes)
-    const { nodes, edges } = triplesToGraph(this.triples, this.prefixMap, themeColors, this.settings);
+    // Regenerate the full graph from all triples (ids are stable for existing nodes and edges)
+    const { nodes, edges } = this.buildGraph(themeColors);
 
-    // Find nodes not yet in the DataSet
-    const existingValues = new Set(this.nodesDataSet.get().map((n: any) => n.fullValue));
-    const nodesToAdd = nodes.filter((n) => !existingValues.has(n.fullValue));
+    let anchor: { x: number; y: number } | undefined;
+    if (anchorId !== undefined && this.network) {
+      anchor = this.network.getPositions([anchorId])[anchorId as any];
+    }
 
-    // Find edges not yet in the DataSet (compare by from+predicate+to)
-    const existingEdgeKeys = new Set(
-      this.edgesDataSet.get().map((e: any) => `${e.from}|${e.predicate}|${e.to}`)
-    );
-    const edgesToAdd = edges.filter(
-      (e) => !existingEdgeKeys.has(`${e.from}|${e.predicate}|${e.to}`)
-    );
+    const newNodeIds = new Set<NodeId>(nodes.map((n) => n.id));
+    const existingNodeIds = new Set<NodeId>(this.nodesDataSet.getIds());
+    const nodesToRemove = Array.from(existingNodeIds).filter((id) => !newNodeIds.has(id));
+    const nodesToAdd = nodes.filter((n) => !existingNodeIds.has(n.id));
+    const groupsToUpdate = nodes.filter((n) => n.type === 'group' && existingNodeIds.has(n.id));
 
+    const newEdgeIds = new Set<string>(edges.map((e) => e.id));
+    const existingEdgeIds = new Set<string>(this.edgesDataSet.getIds());
+    const edgesToRemove = Array.from(existingEdgeIds).filter((id) => !newEdgeIds.has(id));
+    const edgesToAdd = edges.filter((e) => !existingEdgeIds.has(e.id));
+
+    if (edgesToRemove.length > 0) this.edgesDataSet.remove(edgesToRemove);
+    if (nodesToRemove.length > 0) {
+      this.nodesDataSet.remove(nodesToRemove);
+      nodesToRemove.forEach((id) => {
+        this.uriToNodeId.forEach((value, key) => {
+          if (value === id) this.uriToNodeId.delete(key);
+        });
+      });
+    }
+    if (groupsToUpdate.length > 0) {
+      this.nodesDataSet.update(
+        this.prepareNodes(groupsToUpdate, themeColors).map((n) => ({ id: n.id, label: n.label, title: n.title, memberCount: n.memberCount }))
+      );
+    }
     if (nodesToAdd.length > 0) {
-      this.nodesDataSet.add(this.prepareNodes(nodesToAdd, themeColors));
+      const prepared = this.prepareNodes(nodesToAdd, themeColors);
+      if (anchor) {
+        // Spread the members on a ring around the group they came from
+        const radius = Math.max(60, prepared.length * 10);
+        prepared.forEach((n, i) => {
+          const angle = (2 * Math.PI * i) / prepared.length;
+          n.x = anchor!.x + radius * Math.cos(angle);
+          n.y = anchor!.y + radius * Math.sin(angle);
+        });
+      }
+      this.nodesDataSet.add(prepared);
       // Update uriToNodeId map with newly added URI nodes only
-      nodesToAdd.forEach((n: any) => {
+      nodesToAdd.forEach((n) => {
         if (n.uri != null) {
           this.uriToNodeId.set(n.uri, n.id);
         }
@@ -1071,6 +1153,61 @@ class GraphPlugin {
     if (edgesToAdd.length > 0) {
       this.edgesDataSet.add(edgesToAdd);
     }
+  }
+
+  /**
+   * Show the members of a group node instead of the group
+   * @param groupKey - "<subject>|<predicate>" of the group
+   * @param groupNodeId - Id of the group node, used as the start position of its members
+   */
+  private expandGroup(groupKey: string, groupNodeId: NodeId): void {
+    this.expandedGroups.add(groupKey);
+    this.mergeNewTriples(groupNodeId);
+  }
+
+  /** Transform the current triples into nodes and edges with the current settings and configuration */
+  private buildGraph(themeColors: ThemeColors) {
+    const options: GraphBuildOptions = {
+      predicateIcons: this.config.predicateIcons,
+      labelPredicates: this.config.labelPredicates,
+      expandedGroups: this.expandedGroups,
+    };
+    return triplesToGraph(this.triples || [], this.prefixMap || new Map(), themeColors, this.settings, options);
+  }
+
+  /**
+   * Configuration: GraphPlugin.defaults, then the staticConfig of this plugin in the yasr config
+   * (under the name the plugin was registered with).
+   */
+  private resolveConfig(): GraphPluginConfig {
+    let own: Partial<GraphPluginConfig> | undefined;
+    try {
+      const plugins = this.yasr.plugins;
+      const name = plugins ? Object.keys(plugins).find((key) => plugins[key] === this) : undefined;
+      const entry = name ? this.yasr.config?.plugins?.[name] : undefined;
+      if (entry && entry.staticConfig && typeof entry.staticConfig === 'object') {
+        own = entry.staticConfig as Partial<GraphPluginConfig>;
+      }
+    } catch {
+      // no per-yasr configuration
+    }
+    return mergeConfig(GraphPlugin.defaults, own);
+  }
+
+  /**
+   * Options of the "Label from" setting: Automatic and every predicate with literal values in
+   * the data (plus the chosen one, so a choice made on other data stays visible).
+   */
+  private getLabelPropertyOptions(): { value: string; label: string }[] {
+    const prefixMap = this.prefixMap || new Map<string, string>();
+    const predicates = getLiteralPredicates(this.triples || []);
+    if (this.settings.labelProperty && !predicates.includes(this.settings.labelProperty)) {
+      predicates.push(this.settings.labelProperty);
+    }
+    const options = predicates
+      .map((p) => ({ value: p, label: applyPrefix(p, prefixMap) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    return [{ value: '', label: 'Automatic' }, ...options];
   }
 
   /**

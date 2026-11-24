@@ -16,6 +16,10 @@ export interface GraphPluginSettings {
   physicsEnabled: boolean;
   /** Visual size of nodes */
   nodeSize: 'small' | 'medium' | 'large';
+  /** Predicate whose literal value labels a node; '' picks one automatically (see labelPredicates) */
+  labelProperty: string;
+  /** Group the objects of one predicate into a single node from this many on; 0 turns grouping off */
+  groupThreshold: number;
 }
 
 export const DEFAULT_SETTINGS: GraphPluginSettings = {
@@ -25,6 +29,8 @@ export const DEFAULT_SETTINGS: GraphPluginSettings = {
   showNodeLabels: true,
   physicsEnabled: true,
   nodeSize: 'medium',
+  labelProperty: '',
+  groupThreshold: 10,
 };
 
 const STORAGE_KEY = 'yasgui-graph-plugin-settings';
