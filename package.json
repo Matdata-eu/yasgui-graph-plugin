@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "n3": "^2.0.1",
-    "vis-network": "^9.1.9"
+    "vis-network": "^10.1.5"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
