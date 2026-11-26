@@ -3,7 +3,7 @@ const tsParser = require('@typescript-eslint/parser');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
 
 /**
- * ESLint flat config (ESLint 9). Mirrors the former .eslintrc.js.
+ * ESLint flat config. Mirrors the former .eslintrc.js.
  * `no-undef` is off for TypeScript sources: the type checker already reports
  * undefined identifiers and knows the DOM globals.
  */
